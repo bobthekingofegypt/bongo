@@ -5,7 +5,9 @@ import org.bobstuff.bobbson.NoopBufferDataPool;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
+import org.bson.BsonDocument;
 import org.bson.types.ObjectId;
 
 public class Main {
@@ -35,18 +37,37 @@ public class Main {
     var bongo = new BongoClient(settings);
     bongo.connect();
 
-    try {
-      Thread.sleep(50000);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    var database = bongo.getDatabase("test_data");
+    var collection = database.getCollection("people", BsonDocument.class);
+
+    var iter =
+        collection
+            .find(
+                null,
+                null,
+                new ReadExecutionSerialStrategy<BsonDocument>(
+                    settings.getCodec().converter(BsonDocument.class)))
+            .cursor();
+
+    int i = 0;
+    while (iter.hasNext()) {
+      iter.next();
+      i += 1;
     }
 
-    bongo.close();
-
-    try {
-      Thread.sleep(10000);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    System.out.println(i);
+    //    try {
+    //      Thread.sleep(50000);
+    //    } catch (InterruptedException e) {
+    //      throw new RuntimeException(e);
+    //    }
+    //
+        bongo.close();
+    //
+    //    try {
+    //      Thread.sleep(10000);
+    //    } catch (InterruptedException e) {
+    //      throw new RuntimeException(e);
+    //    }
   }
 }

@@ -8,10 +8,13 @@ public class BongoClient {
   private BongoSettings settings;
   private TopologyManager topology;
 
+  private WireProtocol wireProtocol;
+
   public BongoClient(@NonNull BongoSettings settings) {
     // TODO verify all settings are actually valid for what we need to proceed, throw if not
     this.settings = settings;
-    this.topology = new TopologyManager(settings);
+    this.wireProtocol = new WireProtocol(settings.getBufferPool());
+    this.topology = new TopologyManager(settings, wireProtocol);
   }
 
   /**
@@ -27,6 +30,10 @@ public class BongoClient {
 
   public void close() {
     this.topology.close();
+  }
+
+  public BongoDatabase getDatabase(String databaseName) {
+    return new BongoDatabase(databaseName, topology, settings.getCodec(), wireProtocol);
   }
 
   public void test() {

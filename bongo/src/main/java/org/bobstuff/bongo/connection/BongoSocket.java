@@ -76,6 +76,12 @@ public class BongoSocket {
     return closed;
   }
 
+  public void release() {
+    if (this.socketPool != null) {
+      socketPool.release(this);
+    }
+  }
+
   public void open() {
     log.trace("Opening new connection to address {}", serverAddress);
     final SocketFactory socketFactory = SocketFactory.getDefault();

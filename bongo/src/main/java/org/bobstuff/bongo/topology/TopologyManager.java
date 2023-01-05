@@ -11,7 +11,7 @@ import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.exception.BongoConnectionException;
 
 @Slf4j
-public class TopologyManager {
+public class TopologyManager implements BongoConnectionProvider {
   private static final ServerDescription POISON_DESCRIPTION =
       ServerDescription.builder().serverType(ServerType.RSOther).build();
 
@@ -28,11 +28,14 @@ public class TopologyManager {
 
   private CountDownLatch initialisationLatch = new CountDownLatch(1);
 
-  public TopologyManager(BongoSettings settings) {
+  private WireProtocol wireProtocol;
+
+  public TopologyManager(BongoSettings settings, WireProtocol wireProtocol) {
     this.clusterId = new ClusterId();
     this.servers = new ConcurrentHashMap<>();
     this.clusterEvents = new ArrayBlockingQueue<>(10);
     this.settings = settings;
+    this.wireProtocol = wireProtocol;
   }
 
   public void initialise() {
@@ -54,11 +57,12 @@ public class TopologyManager {
   public BongoSocket getReadConnection() {
     var startTime = System.nanoTime();
     while (true) {
-      for (var cluserServer : servers.values()) {
-        log.trace("Checking server {} is usable for read request", cluserServer.getServerAddress());
-        if (cluserServer.isPrimary()) {
-          log.trace("Server {} is a primary", cluserServer.getServerAddress());
-          return cluserServer.getConnection();
+      for (var clusterServer : servers.values()) {
+        log.trace(
+            "Checking server {} is usable for read request", clusterServer.getServerAddress());
+        if (clusterServer.isPrimary()) {
+          log.trace("Server {} is a primary", clusterServer.getServerAddress());
+          return clusterServer.getConnection();
         }
       }
 
@@ -83,6 +87,14 @@ public class TopologyManager {
     throw new RuntimeException("no connections available");
   }
 
+  public BongoSocket getReadConnection(ServerAddress serverAddress) {
+    var server = servers.get(serverAddress);
+    if (server == null) {
+      throw new BongoConnectionException("No connections available to server " + serverAddress);
+    }
+    return server.getConnection();
+  }
+
   public void close() {
     for (MongoServer server : servers.values()) {
       server.stopMonitoring();
@@ -100,7 +112,6 @@ public class TopologyManager {
     }
 
     log.debug("Adding new server {} to topology", serverAddress);
-    var wireProtocol = new WireProtocol(settings.getBufferPool());
     var socketPool =
         settings
             .getSocketPoolProvider()
