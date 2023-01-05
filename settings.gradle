@@ -1,0 +1,3 @@
+rootProject.name = 'bongo-parent'
+
+include 'examples', 'bongo', 'integration-tests', 'code-coverage-report'

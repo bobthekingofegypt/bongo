@@ -1,0 +1,35 @@
+plugins {
+    id 'base'
+    id 'jacoco-report-aggregation'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    jacocoAggregation project(':examples')
+}
+
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testType = TestSuiteType.UNIT_TEST
+        }
+    }
+}
+
+testCodeCoverageReport {
+    getClassDirectories().setFrom(files(
+            [project(':bongo'),
+            ].collect {
+                it.fileTree(dir: "${it.buildDir}/classes/java/main", exclude: [
+                        'org/bobstuff/bongo/example/*',
+                ])
+            }
+    ))
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testCodeCoverageReport', JacocoReport)
+}

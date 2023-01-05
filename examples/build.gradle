@@ -1,0 +1,27 @@
+
+plugins {
+    id 'bobbson.java-conventions'
+    id 'application'
+}
+
+dependencies {
+    implementation project(':bongo')
+
+    implementation 'org.bobstuff.bobbson:core:1.0'
+    implementation 'ch.qos.logback:logback-classic:1.4.4'
+    implementation('org.bobstuff.bobbson:mongodb:1.0')
+    implementation 'org.mongodb:bson:4.5.0'
+}
+
+test {
+    jacoco {
+    }
+}
+
+checkerFramework {
+    skipCheckerFramework = true
+}
+
+application {
+    mainClass = 'org.bobstuff.bongo.Main'
+}
