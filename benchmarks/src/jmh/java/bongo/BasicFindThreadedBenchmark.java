@@ -28,10 +28,11 @@ import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@BenchmarkMode({Mode.AverageTime})
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Measurement(iterations = 20, time = 20000, timeUnit = MILLISECONDS)
-public class BasicFindBenchmark {
+@BenchmarkMode({Mode.Throughput})
+@OutputTimeUnit(TimeUnit.SECONDS)
+@Measurement(iterations = 200, time = 20000, timeUnit = MILLISECONDS)
+@Threads(8)
+public class BasicFindThreadedBenchmark {
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
@@ -41,6 +42,7 @@ public class BasicFindBenchmark {
     public BongoCodec codec;
 
     public ReadExecutionConcurrentStrategy<Person> concurrentStrategy;
+    public ReadExecutionSerialStrategy<Person> serialStrategy;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -66,6 +68,7 @@ public class BasicFindBenchmark {
       var database = bongo.getDatabase("test_data");
       var collection = database.getCollection("people", Person.class);
 
+      this.serialStrategy = new ReadExecutionSerialStrategy<>(settings.getCodec().converter(Person.class));
       this.concurrentStrategy =
           new ReadExecutionConcurrentStrategy<Person>(
               settings.getCodec().converter(Person.class), 1);
@@ -122,7 +125,7 @@ public class BasicFindBenchmark {
   }
 
   @Benchmark
-  public void bongoFindNoLimitNoCompressionNoExhaust(Blackhole bh, MyBongoClient state) {
+  public void bongoNoCompressionNoExhaust(Blackhole bh, MyBongoClient state) {
     var iter =
         state
             .collection
@@ -130,6 +133,7 @@ public class BasicFindBenchmark {
                 null,
                 null,
                 new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
+            .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
             .cursorType(BongoCursorType.Default)
             .cursor();
@@ -140,11 +144,11 @@ public class BasicFindBenchmark {
       i += 1;
     }
 
-    System.out.println(i);
+    bh.consume(i);
   }
 
   @Benchmark
-  public void bongoFindNoLimitCompressionNoExhaust(Blackhole bh, MyBongoClient state) {
+  public void bongoNoExhaust(Blackhole bh, MyBongoClient state) {
     var iter =
         state
             .collection
@@ -153,6 +157,7 @@ public class BasicFindBenchmark {
                 null,
                 new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
             .compress(true)
+            .options(BongoFindOptions.builder().limit(1000).build())
             .cursorType(BongoCursorType.Default)
             .cursor();
 
@@ -162,11 +167,34 @@ public class BasicFindBenchmark {
       i += 1;
     }
 
-    System.out.println(i);
+    bh.consume(i);
   }
 
   @Benchmark
-  public void bongoFindNoLimitNoCompression(Blackhole bh, MyBongoClient state) {
+  public void bongoNoCompressionRe(Blackhole bh, MyBongoClient state) {
+    var iter =
+            state
+                    .collection
+                    .find(
+                            null,
+                            null,
+                            state.serialStrategy)
+                    .cursorType(BongoCursorType.Exhaustible)
+                    .options(BongoFindOptions.builder().limit(1000).build())
+                    .compress(false)
+                    .cursor();
+
+    int i = 0;
+    while (iter.hasNext()) {
+      iter.next();
+      i += 1;
+    }
+
+    bh.consume(i);
+  }
+
+  @Benchmark
+  public void bongoNoCompression(Blackhole bh, MyBongoClient state) {
     var iter =
         state
             .collection
@@ -175,6 +203,7 @@ public class BasicFindBenchmark {
                 null,
                 new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
             .cursorType(BongoCursorType.Exhaustible)
+            .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
             .cursor();
 
@@ -184,11 +213,11 @@ public class BasicFindBenchmark {
       i += 1;
     }
 
-    System.out.println(i);
+    bh.consume(i);
   }
 
   @Benchmark
-  public void bongoFindNoLimit(Blackhole bh, MyBongoClient state) {
+  public void bongo(Blackhole bh, MyBongoClient state) {
     var iter =
         state
             .collection
@@ -197,6 +226,7 @@ public class BasicFindBenchmark {
                 null,
                 new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
             .cursorType(BongoCursorType.Exhaustible)
+            .options(BongoFindOptions.builder().limit(1000).build())
             .cursor();
 
     int i = 0;
@@ -205,31 +235,28 @@ public class BasicFindBenchmark {
       i += 1;
     }
 
-    System.out.println(i);
+    bh.consume(i);
   }
 
-  @Benchmark
-  public void bongoFindNoLimitConcurrent_CE(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(null, null, state.concurrentStrategy)
-            .cursorType(BongoCursorType.Exhaustible)
-            .cursor();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    System.out.println(i);
-  }
+  //    @Benchmark
+  //    public void bongoFindNoLimitConcurrent_CE(Blackhole bh, MyBongoClient state) {
+  //      var iter = state.collection.find(null, null, state.concurrentStrategy)
+  //                                 .options(BongoFindOptions.builder().limit(1000).build())
+  //                                 .cursorType(BongoCursorType.Exhaustible).cursor();
+  //
+  //      int i = 0;
+  //      while (iter.hasNext()) {
+  //        iter.next();
+  //        i += 1;
+  //      }
+  //
+  //      bh.consume(i);
+  //    }
 
   @Benchmark
-  public void mongoFindNoLimit(Blackhole bh, MyMongoClient state) {
+  public void mongoFind(Blackhole bh, MyMongoClient state) {
     int i;
-    try (var iter = state.mongoCollection.find().iterator()) {
+    try (var iter = state.mongoCollection.find().limit(1000).iterator()) {
 
       i = 0;
       while (iter.hasNext()) {
@@ -238,6 +265,6 @@ public class BasicFindBenchmark {
       }
     }
 
-    System.out.println(i);
+    bh.consume(i);
   }
 }

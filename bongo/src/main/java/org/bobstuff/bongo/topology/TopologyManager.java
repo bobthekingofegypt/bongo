@@ -8,7 +8,9 @@ import org.bobstuff.bongo.BongoSettings;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.auth.BongoAuthenticators;
 import org.bobstuff.bongo.connection.BongoSocket;
+import org.bobstuff.bongo.connection.BongoSocketInitialiser;
 import org.bobstuff.bongo.exception.BongoConnectionException;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 @Slf4j
 public class TopologyManager implements BongoConnectionProvider {
@@ -87,7 +89,7 @@ public class TopologyManager implements BongoConnectionProvider {
     throw new RuntimeException("no connections available");
   }
 
-  public BongoSocket getReadConnection(ServerAddress serverAddress) {
+  public @NonNull BongoSocket getReadConnection(ServerAddress serverAddress) {
     var server = servers.get(serverAddress);
     if (server == null) {
       throw new BongoConnectionException("No connections available to server " + serverAddress);
@@ -112,11 +114,18 @@ public class TopologyManager implements BongoConnectionProvider {
     }
 
     log.debug("Adding new server {} to topology", serverAddress);
+    var socketInitialiser =
+        new BongoSocketInitialiser(
+            settings.getCodec(),
+            wireProtocol,
+            BongoAuthenticators.from(settings),
+            settings.getConnectionSettings().getCompressors());
     var socketPool =
         settings
             .getSocketPoolProvider()
             .provide(
                 serverAddress,
+                socketInitialiser,
                 BongoAuthenticators.from(settings),
                 wireProtocol,
                 settings.getBufferPool());

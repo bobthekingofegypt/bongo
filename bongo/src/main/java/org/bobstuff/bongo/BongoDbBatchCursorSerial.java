@@ -1,8 +1,6 @@
 package org.bobstuff.bongo;
 
 import java.util.List;
-
-import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.checkerframework.checker.nullness.qual.Nullable;
 

@@ -19,8 +19,6 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
   public static final String HMAC_SHA_256 = "HmacSHA256";
   public static final String SCRAM_SHA_256 = "SCRAM-SHA-256";
   private BongoCredentials credentials;
-  private ScramClientFunctionality scramClient;
-
   private BufferDataPool bufferPool;
 
   private BongoCodec codec;
@@ -28,26 +26,27 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
   public BongoAuthenticatorScram(
       BongoCredentials credentials, BufferDataPool bufferPool, BongoCodec codec) {
     this.credentials = credentials;
-    this.scramClient = new ScramClientFunctionalityImpl(SHA_256, HMAC_SHA_256);
     this.bufferPool = bufferPool;
     this.codec = codec;
   }
 
   @Override
-  public HelloResponse authenticate(BongoSocket socket, WireProtocol wireProtocol) {
+  public void authenticate(
+      BongoSocket socket, WireProtocol wireProtocol, HelloResponse initialResponse) {
     log.debug(
         "Performing scram authentication for user {} on source {}",
         credentials.getUsername(),
         credentials.getAuthSource());
 
+    var scramClient = new ScramClientFunctionalityImpl(SHA_256, HMAC_SHA_256);
     BsonDocument command =
         new BsonDocument()
             .append("hello", new BsonInt32(1))
             .append("helloOk", new BsonBoolean(true))
-            .append("speculativeAuthenticate", createSaslStartCommandDocument())
+            .append("speculativeAuthenticate", createSaslStartCommandDocument(scramClient))
             .append("$db", new BsonString("admin"));
 
-    var initialResponse =
+    var initialScramResponse =
         wireProtocol
             .sendReceiveCommandMessage(
                 socket,
@@ -55,11 +54,11 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
                 command,
                 codec.converter(HelloResponse.class))
             .getPayload();
-    log.trace("Scram initial server response: {}", initialResponse);
+    log.trace("Scram initial server response: {}", initialScramResponse);
 
-    if (initialResponse.getSpeculativeAuthenticate() == null) {
+    if (initialScramResponse.getSpeculativeAuthenticate() == null) {
       throw new BongoAuthenticatorException(
-          "No speculative response found on initial server response: " + initialResponse);
+          "No speculative response found on initial server response: " + initialScramResponse);
     }
 
     var saslContinueCommand =
@@ -67,11 +66,13 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
             .append("saslContinue", new BsonInt32(1))
             .append(
                 "conversationId",
-                new BsonInt32(initialResponse.getSpeculativeAuthenticate().getConversationId()))
+                new BsonInt32(
+                    initialScramResponse.getSpeculativeAuthenticate().getConversationId()))
             .append(
                 "payload",
                 createSaslFirstResponse(
-                    initialResponse.getSpeculativeAuthenticate().getPayload().getData()))
+                    scramClient,
+                    initialScramResponse.getSpeculativeAuthenticate().getPayload().getData()))
             .append("$db", new BsonString("admin"));
 
     var finalResponse =
@@ -92,14 +93,12 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
 
     log.trace("Scram final server response: {}", finalResponse);
 
-    if (!validateFinalServerResponse(finalResponse.getPayload().getData())) {
+    if (!validateFinalServerResponse(scramClient, finalResponse.getPayload().getData())) {
       throw new BongoAuthenticatorException("Final scram response failed validation");
     }
-
-    return initialResponse;
   }
 
-  private BsonDocument createSaslStartCommandDocument() {
+  private BsonDocument createSaslStartCommandDocument(ScramClientFunctionality scramClient) {
     byte[] payload;
     try {
       String request = scramClient.prepareFirstMessage(credentials.getUsername());
@@ -115,7 +114,8 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
         .append("options", new BsonDocument("skipEmptyExchange", new BsonBoolean(true)));
   }
 
-  public BsonBinary createSaslFirstResponse(byte[] serverResponse) {
+  public BsonBinary createSaslFirstResponse(
+      ScramClientFunctionality scramClient, byte[] serverResponse) {
     try {
       String firstResponse =
           scramClient.prepareFinalMessage(credentials.getPassword(), new String(serverResponse));
@@ -125,7 +125,7 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
     }
   }
 
-  public boolean validateFinalServerResponse(byte[] payload) {
+  public boolean validateFinalServerResponse(ScramClientFunctionality scramClient, byte[] payload) {
     try {
       return scramClient.checkServerFinalMessage(new String(payload));
     } catch (ScramException e) {

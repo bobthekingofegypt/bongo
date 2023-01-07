@@ -1,9 +1,7 @@
 package org.bobstuff.bongo.executionstrategy;
 
-import org.bobstuff.bongo.BongoCollection;
-import org.bobstuff.bongo.BongoDbBatchCursor;
-import org.bobstuff.bongo.BongoFindOptions;
-import org.bobstuff.bongo.WireProtocol;
+import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
@@ -15,7 +13,10 @@ public interface ReadExecutionStrategy<TModel> {
       Class<TModel> model,
       @Nullable BongoFindOptions findOptions,
       @Nullable BsonDocument filter,
+      @Nullable Boolean compress,
+      BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
+      BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider);
 }

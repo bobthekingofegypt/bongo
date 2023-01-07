@@ -14,6 +14,7 @@ import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.auth.BongoAuthenticator;
+import org.bobstuff.bongo.compressors.BongoCompressor;
 import org.bobstuff.bongo.exception.BongoConnectionException;
 import org.bobstuff.bongo.exception.BongoSocketReadException;
 import org.bobstuff.bongo.exception.BongoSocketWriteException;
@@ -21,6 +22,7 @@ import org.bobstuff.bongo.messages.BongoResponseHeader;
 import org.bobstuff.bongo.messages.BongoResponseHeaderParser;
 import org.bobstuff.bongo.topology.ServerAddress;
 import org.bobstuff.bongo.topology.ServerDescription;
+import org.bson.*;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -46,13 +48,18 @@ public class BongoSocket {
 
   private WireProtocol wireProtocol;
 
+  private @Nullable BongoCompressor compressor;
+  private BongoSocketInitialiser initialiser;
+
   public BongoSocket(
       ServerAddress serverAddress,
+      BongoSocketInitialiser initialiser,
       BongoAuthenticator authenticator,
       WireProtocol wireProtocol,
       BufferDataPool bufferPool) {
     this.serverAddress = serverAddress;
     this.authenticator = authenticator;
+    this.initialiser = initialiser;
     this.wireProtocol = wireProtocol;
     this.bufferPool = bufferPool;
     this.requestId = new AtomicInteger();
@@ -70,6 +77,10 @@ public class BongoSocket {
 
   public ServerAddress getServerAddress() {
     return serverAddress;
+  }
+
+  public @Nullable BongoCompressor getCompressor() {
+    return compressor;
   }
 
   public boolean isClosed() {
@@ -97,9 +108,9 @@ public class BongoSocket {
       throw new BongoConnectionException(e);
     }
 
-    var initialHelloResponse = authenticator.authenticate(this, wireProtocol);
-
-    initialServerDescription = ServerDescription.from(serverAddress, initialHelloResponse);
+    var initialiserResult = initialiser.initialise(this);
+    initialServerDescription = initialiserResult.getServerDescription();
+    compressor = initialiserResult.getCompressor();
   }
 
   public void close() {

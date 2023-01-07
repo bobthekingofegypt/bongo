@@ -33,7 +33,7 @@ application {
 }
 
 jmh {
-    includes = ['BasicFindBenchmark']
+    includes = ['BasicFindThreadedBenchmark']
 //    includes = ['SimpleWriteLotsInts']
     profilers = ['gc']
     warmupIterations = 1

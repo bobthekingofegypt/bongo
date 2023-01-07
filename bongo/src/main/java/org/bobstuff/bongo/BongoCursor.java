@@ -1,10 +1,9 @@
 package org.bobstuff.bongo;
 
-import org.bobstuff.bongo.exception.BongoException;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Iterator;
 import java.util.List;
+import org.bobstuff.bongo.exception.BongoException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoCursor<TModel> implements Iterator<TModel> {
   private BongoDbBatchCursor<TModel> batchCursor;

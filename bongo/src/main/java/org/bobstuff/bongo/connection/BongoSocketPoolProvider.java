@@ -11,6 +11,7 @@ public interface BongoSocketPoolProvider {
   @NonNull
   BongoSocketPool provide(
       ServerAddress serverAddress,
+      BongoSocketInitialiser socketInitialiser,
       BongoAuthenticator authenticator,
       WireProtocol wireProtocol,
       BufferDataPool bufferPool);
