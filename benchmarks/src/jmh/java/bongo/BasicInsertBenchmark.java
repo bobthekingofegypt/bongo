@@ -1,14 +1,12 @@
 package bongo;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import java.util.concurrent.TimeUnit;
+import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
@@ -18,6 +16,7 @@ import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
+import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
 import org.bobstuff.bongo.models.Person;
 import org.bobstuff.bongo.models.Scores;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
@@ -28,11 +27,19 @@ import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@BenchmarkMode({Mode.Throughput})
-@OutputTimeUnit(TimeUnit.SECONDS)
-@Measurement(iterations = 200, time = 20000, timeUnit = MILLISECONDS)
-@Threads(8)
-public class BasicFindThreadedBenchmark {
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+@State(Scope.Benchmark)
+@BenchmarkMode({Mode.AverageTime})
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 10, time = 10000, timeUnit = MILLISECONDS)
+public class BasicInsertBenchmark {
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
@@ -42,7 +49,6 @@ public class BasicFindThreadedBenchmark {
     public BongoCodec codec;
 
     public ReadExecutionConcurrentStrategy<Person> concurrentStrategy;
-    public ReadExecutionSerialStrategy<Person> serialStrategy;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -66,10 +72,8 @@ public class BasicFindThreadedBenchmark {
       bongo.connect();
 
       var database = bongo.getDatabase("test_data");
-      var collection = database.getCollection("people", Person.class);
+      var collection = database.getCollection("people4", Person.class);
 
-      this.serialStrategy =
-          new ReadExecutionSerialStrategy<>(settings.getCodec().converter(Person.class));
       this.concurrentStrategy =
           new ReadExecutionConcurrentStrategy<Person>(
               settings.getCodec().converter(Person.class), 1);
@@ -112,157 +116,60 @@ public class BasicFindThreadedBenchmark {
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
               .applyConnectionString(
-                  new ConnectionString("mongodb://192.168.1.138:27027/?compressors=zstd"))
+                  new ConnectionString("mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
-      mongoCollection = mongoDatabase.getCollection("people", Person.class);
+      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
     }
 
     @TearDown(Level.Trial)
     public void doTearDown() {
+      System.out.println("IS THIS RUNNING?");
+      mongoCollection.drop();
       client.close();
     }
   }
 
-  @Benchmark
-  public void bongoNoCompressionNoExhaust(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
-            .options(BongoFindOptions.builder().limit(1000).build())
-            .compress(false)
-            .cursorType(BongoCursorType.Default)
-            .cursor();
+  private List<Person> people;
 
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
+  @Setup
+  public void setup() {
+
+    Faker faker = new Faker(new Random(23));
+    people = new ArrayList<>();
+    for (var i = 0; i < 10000; i+= 1) {
+      var person = new Person();
+      person.setName(faker.name().fullName());
+      person.setAge(faker.number().numberBetween(1, 99));
+      person.setOccupation(faker.job().position());
+      person.setAddress(faker.lorem().characters(1200));
+      person.setDescription(Arrays.asList(faker.color().hex(), faker.color().hex()));
+      var scores = new Scores();
+      scores.setScore1(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore2(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore3(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore4(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore5(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore6(faker.number().randomDouble(2, 0, 1000));
+      scores.setScore7(faker.number().randomDouble(2, 0, 1000));
+      person.setScores(scores);
+      people.add(person);
     }
-
-    bh.consume(i);
-  }
-
-  @Benchmark
-  public void bongoNoExhaust(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
-            .compress(true)
-            .options(BongoFindOptions.builder().limit(1000).build())
-            .cursorType(BongoCursorType.Default)
-            .cursor();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    bh.consume(i);
-  }
-
-  @Benchmark
-  public void bongoNoCompressionRe(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(null, null, state.serialStrategy)
-            .cursorType(BongoCursorType.Exhaustible)
-            .options(BongoFindOptions.builder().limit(1000).build())
-            .compress(false)
-            .cursor();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    bh.consume(i);
-  }
-
-  @Benchmark
-  public void bongoNoCompression(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
-            .cursorType(BongoCursorType.Exhaustible)
-            .options(BongoFindOptions.builder().limit(1000).build())
-            .compress(false)
-            .cursor();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    bh.consume(i);
   }
 
   @Benchmark
   public void bongo(Blackhole bh, MyBongoClient state) {
-    var iter =
-        state
-            .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
-            .cursorType(BongoCursorType.Exhaustible)
-            .options(BongoFindOptions.builder().limit(1000).build())
-            .cursor();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    bh.consume(i);
+    state.collection.insertMany(people, new WriteExecutionSerialStrategy<>(), false);
   }
 
-  //    @Benchmark
-  //    public void bongoFindNoLimitConcurrent_CE(Blackhole bh, MyBongoClient state) {
-  //      var iter = state.collection.find(null, null, state.concurrentStrategy)
-  //                                 .options(BongoFindOptions.builder().limit(1000).build())
-  //                                 .cursorType(BongoCursorType.Exhaustible).cursor();
-  //
-  //      int i = 0;
-  //      while (iter.hasNext()) {
-  //        iter.next();
-  //        i += 1;
-  //      }
-  //
-  //      bh.consume(i);
-  //    }
+//  @Benchmark
+//  public void bongoCompression(Blackhole bh, MyBongoClient state) {
+//    state.collection.insertMany(people, new WriteExecutionSerialStrategy<>(), true);
+//  }
 
   @Benchmark
-  public void mongoFind(Blackhole bh, MyMongoClient state) {
-    int i;
-    try (var iter = state.mongoCollection.find().limit(1000).iterator()) {
-
-      i = 0;
-      while (iter.hasNext()) {
-        iter.next();
-        i += 1;
-      }
-    }
-
-    bh.consume(i);
+  public void mongoCompression(Blackhole bh, MyMongoClient state) {
+    state.mongoCollection.insertMany(people);
   }
 }

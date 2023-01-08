@@ -1,12 +1,15 @@
 package org.bobstuff.bongo;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
+import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoCollection<TModel> {
   private Identifier identifier;
@@ -36,6 +39,12 @@ public class BongoCollection<TModel> {
       BsonDocument filter, BongoFindOptions findOptions, ReadExecutionStrategy readStrategy) {
     return new BongoFindIterable<>(
         identifier, model, connectionProvider, codec, wireProtocol, bufferPool, readStrategy);
+  }
+
+  public @Nullable BongoInsertManyResult insertMany(
+      List<TModel> items, WriteExecutionStrategy<TModel> writeStrategy, boolean compress) {
+    return writeStrategy.execute(
+        identifier, model, items, compress, null , bufferPool, codec, connectionProvider, wireProtocol);
   }
 
   @Data

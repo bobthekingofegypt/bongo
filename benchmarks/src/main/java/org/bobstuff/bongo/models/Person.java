@@ -2,12 +2,14 @@ package org.bobstuff.bongo.models;
 
 import java.util.List;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
+import org.bobstuff.bobbson.annotations.BsonWriterOptions;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 import org.bson.types.ObjectId;
 
 @CompiledBson
 public class Person {
   @BsonAttribute(value = "_id", order = 14)
+  @BsonWriterOptions(writeNull = false)
   private ObjectId mongoId;
 
   @BsonAttribute(value = "name", order = 10)

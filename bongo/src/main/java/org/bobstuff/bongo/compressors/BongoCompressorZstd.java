@@ -36,7 +36,7 @@ public class BongoCompressorZstd implements BongoCompressor {
       int compressedSize =
           (int)
               Zstd.compressByteArray(
-                  out, 0, out.length, data, offset, length, Zstd.maxCompressionLevel());
+                  out, 0, out.length, data, offset, length, 5);
       outBuffer.setTail(compressedSize);
     } catch (RuntimeException e) {
       throw new BongoException("Unexpected exception compressing with zstd", e);

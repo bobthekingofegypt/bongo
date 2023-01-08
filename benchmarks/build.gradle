@@ -16,7 +16,7 @@ dependencies {
     implementation 'org.checkerframework:checker-qual:3.28.0'
     implementation 'org.mongodb:mongodb-driver-sync:4.5.0'
     implementation 'org.mongodb:mongodb-driver-core:4.5.0'
-
+    implementation("net.datafaker:datafaker:1.7.0")
 }
 
 test {
@@ -33,7 +33,7 @@ application {
 }
 
 jmh {
-    includes = ['BasicFindThreadedBenchmark']
+    includes = ['BasicInsertBenchmark']
 //    includes = ['SimpleWriteLotsInts']
     profilers = ['gc']
     warmupIterations = 1

@@ -9,6 +9,7 @@ import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.exception.BongoSocketReadException;
 import org.bobstuff.bongo.messages.BongoResponseHeader;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class WireProtocol {
   private BufferDataPool bufferPool;
@@ -162,6 +163,16 @@ public class WireProtocol {
       @NonNull T value,
       boolean compress,
       boolean stream) {
+    return this.sendCommandMessage(socket, converter, value, compress, stream, null);
+  }
+
+  public <T, V> int sendCommandMessage(
+      BongoSocket socket,
+      BobBsonConverter<T> converter,
+      @NonNull T value,
+      boolean compress,
+      boolean stream,
+      @Nullable BongoPayload<V> payload) {
     var requestId = socket.getNextRequestId();
     var buffer = new DynamicBobBsonBuffer(bufferPool);
     buffer.skipTail(4);
@@ -186,7 +197,17 @@ public class WireProtocol {
       var bsonOutput = new BsonWriter(contentBuffer);
       converter.write(bsonOutput, value);
 
-      //      contentBuffer.writeInteger(0, contentBuffer.getTail());
+      if (payload != null) {
+        contentBuffer.writeByte((byte) 1);
+        int position = contentBuffer.getTail();
+        contentBuffer.skipTail(4);
+        contentBuffer.writeString(payload.getIdentifier());
+        contentBuffer.writeByte((byte) 0);
+
+        payload.getItems().write(contentBuffer);
+
+        contentBuffer.writeInteger(position, contentBuffer.getTail() - position);
+      }
 
       BobBsonBuffer compressedBuffer;
       if (contentBuffer.getBuffers().size() == 1) {
@@ -232,6 +253,18 @@ public class WireProtocol {
 
       var bsonOutput = new BsonWriter(buffer);
       converter.write(bsonOutput, value);
+
+      if (payload != null) {
+        buffer.writeByte((byte) 1);
+        int position = buffer.getTail();
+        buffer.skipTail(4);
+        buffer.writeString(payload.getIdentifier());
+        buffer.writeByte((byte) 0);
+
+        payload.getItems().write(buffer);
+
+        buffer.writeInteger(position, buffer.getTail() - position);
+      }
     }
 
     buffer.writeInteger(0, buffer.getTail());
