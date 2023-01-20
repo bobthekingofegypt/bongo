@@ -21,14 +21,14 @@ public class InstantConverter implements BobBsonConverter<Instant> {
       value = Instant.now();
     }
     if (key == null) {
-      bsonWriter.writeDateTime(value.getEpochSecond());
+      bsonWriter.writeDateTime(value.toEpochMilli());
     } else {
-      bsonWriter.writeDateTime(key, value.getEpochSecond());
+      bsonWriter.writeDateTime(key, value.toEpochMilli());
     }
   }
 
   @Override
   public void write(@NonNull BsonWriter bsonWriter, @NonNull Instant value) {
-    bsonWriter.writeDateTime(value.getEpochSecond());
+    bsonWriter.writeDateTime(value.toEpochMilli());
   }
 }
