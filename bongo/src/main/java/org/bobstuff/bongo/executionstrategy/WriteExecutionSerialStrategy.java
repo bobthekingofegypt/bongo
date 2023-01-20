@@ -27,7 +27,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
     var compressor = socket.getCompressor();
     if (compressor == null && compress != null && compress) {
       throw new IllegalStateException(
-              "Compression requested on call but no compressors registered");
+          "Compression requested on call but no compressors registered");
     }
     var requestCompression = compressor != null && (compress == null || compress);
     var contextStack = new ContextStack();
@@ -44,16 +44,23 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
               .items(wrappedItems)
               .build();
       wireProtocol.sendCommandMessage(
-          socket, codec.converter(BongoInsertRequest.class), insertRequest, requestCompression, false, payload);
+          socket,
+          codec.converter(BongoInsertRequest.class),
+          insertRequest,
+          requestCompression,
+          false,
+          payload);
 
       var response = wireProtocol.readServerResponse(socket, codec.converter(BsonDocument.class));
 
-//      System.out.println(response.getPayload());
+      //      System.out.println(response.getPayload());
     }
 
     socket.release();
 
-//    System.out.println(wrappedItems.getIds());
+    //    System.out.println(wrappedItems.getIds());
     return null;
   }
+
+  public void close() {}
 }

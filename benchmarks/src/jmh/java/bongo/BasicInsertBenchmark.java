@@ -1,11 +1,18 @@
 package bongo;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
@@ -15,7 +22,7 @@ import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
-import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
+import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
 import org.bobstuff.bongo.models.Person;
 import org.bobstuff.bongo.models.Scores;
@@ -26,14 +33,6 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @State(Scope.Benchmark)
 @BenchmarkMode({Mode.AverageTime})
@@ -49,6 +48,8 @@ public class BasicInsertBenchmark {
     public BongoCodec codec;
 
     public ReadExecutionConcurrentStrategy<Person> concurrentStrategy;
+
+    public WriteExecutionConcurrentStrategy<Person> writeConcurrentStrategy;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -74,6 +75,7 @@ public class BasicInsertBenchmark {
       var database = bongo.getDatabase("test_data");
       var collection = database.getCollection("people4", Person.class);
 
+      this.writeConcurrentStrategy = new WriteExecutionConcurrentStrategy<Person>(3, 1);
       this.concurrentStrategy =
           new ReadExecutionConcurrentStrategy<Person>(
               settings.getCodec().converter(Person.class), 1);
@@ -87,6 +89,42 @@ public class BasicInsertBenchmark {
     public void doTearDown() {
       bongoClient.close();
       this.concurrentStrategy.close();
+      this.writeConcurrentStrategy.close();
+    }
+  }
+
+  @State(Scope.Benchmark)
+  public static class MyMongoClientCompression {
+    public MongoClient client;
+    public MongoDatabase mongoDatabase;
+    public MongoCollection<Person> mongoCollection;
+
+    @Setup(Level.Trial)
+    public void doSetup() throws Exception {
+      PojoCodecProvider.Builder providerBuilder = PojoCodecProvider.builder();
+      providerBuilder.register(Person.class);
+      providerBuilder.register(Scores.class);
+      var provider = providerBuilder.build();
+      CodecRegistry pojoCodecRegistry =
+          CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build());
+      var codecRegistry =
+          CodecRegistries.fromRegistries(
+              MongoClientSettings.getDefaultCodecRegistry(), pojoCodecRegistry);
+      MongoClientSettings settings =
+          MongoClientSettings.builder()
+              .codecRegistry(codecRegistry)
+              .applyToSocketSettings(
+                  builder -> {
+                    builder.connectTimeout(1, TimeUnit.DAYS);
+                    builder.readTimeout(1, TimeUnit.DAYS);
+                  })
+              .applyConnectionString(
+                  new ConnectionString(
+                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
+              .build();
+      client = MongoClients.create(settings);
+      mongoDatabase = client.getDatabase("test_data");
+      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
     }
   }
 
@@ -116,7 +154,8 @@ public class BasicInsertBenchmark {
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
               .applyConnectionString(
-                  new ConnectionString("mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
+                  new ConnectionString(
+                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -138,7 +177,7 @@ public class BasicInsertBenchmark {
 
     Faker faker = new Faker(new Random(23));
     people = new ArrayList<>();
-    for (var i = 0; i < 10000; i+= 1) {
+    for (var i = 0; i < 10000; i += 1) {
       var person = new Person();
       person.setName(faker.name().fullName());
       person.setAge(faker.number().numberBetween(1, 99));
@@ -159,17 +198,55 @@ public class BasicInsertBenchmark {
   }
 
   @Benchmark
-  public void bongo(Blackhole bh, MyBongoClient state) {
+  public void bongo(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     state.collection.insertMany(people, new WriteExecutionSerialStrategy<>(), false);
   }
 
-//  @Benchmark
-//  public void bongoCompression(Blackhole bh, MyBongoClient state) {
-//    state.collection.insertMany(people, new WriteExecutionSerialStrategy<>(), true);
-//  }
+  @Benchmark
+  public void bongoCompression(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    state.collection.insertMany(people, new WriteExecutionSerialStrategy<>(), true);
+  }
 
   @Benchmark
-  public void mongoCompression(Blackhole bh, MyMongoClient state) {
+  public void bongo3writ2sen(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var s = new WriteExecutionConcurrentStrategy<Person>(3, 2);
+    state.collection.insertMany(people, s, false);
+    s.close();
+  }
+
+  @Benchmark
+  public void bongoCompression3writ2sen(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var s = new WriteExecutionConcurrentStrategy<Person>(3, 2);
+    state.collection.insertMany(people, s, true);
+    s.close();
+  }
+
+  @Benchmark
+  public void bongo3writ(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var s = new WriteExecutionConcurrentStrategy<Person>(3, 1);
+    state.collection.insertMany(people, s, false);
+    s.close();
+  }
+
+  @Benchmark
+  public void bongoCompression3writ(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var s = new WriteExecutionConcurrentStrategy<Person>(3, 1);
+    state.collection.insertMany(people, s, true);
+    s.close();
+  }
+
+  @Benchmark
+  public void bongoCompression3writRe(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    state.collection.insertMany(people, state.writeConcurrentStrategy, true);
+  }
+
+  @Benchmark
+  public void mongo(Blackhole bh, MyMongoClient state) {
+    state.mongoCollection.insertMany(people);
+  }
+
+  @Benchmark
+  public void mongoCompression(Blackhole bh, MyMongoClientCompression state) {
     state.mongoCollection.insertMany(people);
   }
 }

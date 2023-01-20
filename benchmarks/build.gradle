@@ -8,6 +8,7 @@ plugins {
 
 dependencies {
     implementation project(':bongo')
+    implementation project(':data:models')
     annotationProcessor 'org.bobstuff.bobbson:processor:1.0'
     implementation 'org.bobstuff.bobbson:core:1.0'
     implementation 'ch.qos.logback:logback-classic:1.4.4'
@@ -17,6 +18,7 @@ dependencies {
     implementation 'org.mongodb:mongodb-driver-sync:4.5.0'
     implementation 'org.mongodb:mongodb-driver-core:4.5.0'
     implementation("net.datafaker:datafaker:1.7.0")
+    implementation 'com.google.guava:guava:31.1-jre'
 }
 
 test {
@@ -33,7 +35,8 @@ application {
 }
 
 jmh {
-    includes = ['BasicInsertBenchmark']
+    includes = ['BasicFindCompanyBenchmark']
+
 //    includes = ['SimpleWriteLotsInts']
     profilers = ['gc']
     warmupIterations = 1

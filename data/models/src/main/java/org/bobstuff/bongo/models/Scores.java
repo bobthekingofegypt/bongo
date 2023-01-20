@@ -1,8 +1,15 @@
 package org.bobstuff.bongo.models;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 
 @CompiledBson
+@Builder
+@Data
+@AllArgsConstructor
 public class Scores {
   private Double score1;
   private Double score2;
@@ -11,6 +18,10 @@ public class Scores {
   private Double score5;
   private Double score6;
   private Double score7;
+
+  public Scores() {
+
+  }
 
   public Double getScore1() {
     return score1;

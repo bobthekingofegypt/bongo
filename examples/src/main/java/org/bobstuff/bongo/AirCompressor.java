@@ -1,11 +1,12 @@
-package org.bobstuff.bongo.compressors;
+package org.bobstuff.bongo;
 
-import com.github.luben.zstd.Zstd;
+import io.airlift.compress.zstd.ZstdCompressor;
+import io.airlift.compress.zstd.ZstdDecompressor;
 import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BufferDataPool;
-import org.bobstuff.bongo.exception.BongoException;
+import org.bobstuff.bongo.compressors.BongoCompressor;
 
-public class BongoCompressorZstd implements BongoCompressor {
+public class AirCompressor implements BongoCompressor {
   @Override
   public byte getId() {
     return 3;
@@ -23,7 +24,8 @@ public class BongoCompressorZstd implements BongoCompressor {
 
   @Override
   public BobBsonBuffer compress(byte[] data, int offset, int length, BufferDataPool bufferPool) {
-    var outBuffer = bufferPool.allocate((int) Zstd.compressBound(length - offset));
+    ZstdCompressor compressor = new ZstdCompressor();
+    var outBuffer = bufferPool.allocate((int) compressor.maxCompressedLength(length - offset));
     byte[] out = outBuffer.getArray();
     if (out == null) {
       throw new IllegalStateException(
@@ -32,26 +34,15 @@ public class BongoCompressorZstd implements BongoCompressor {
               + " must implement getArray()");
     }
 
-    try {
-      int compressedSize =
-          (int)
-              Zstd.compressByteArray(
-                  out, 0, out.length, data, offset, length, Zstd.maxCompressionLevel());
-      outBuffer.setTail(compressedSize);
-    } catch (RuntimeException e) {
-      throw new BongoException("Unexpected exception compressing with zstd", e);
-    }
-
+    int compressedSize = compressor.compress(data, offset, length, out, 0, out.length);
+    outBuffer.setTail(compressedSize);
     return outBuffer;
   }
 
   @Override
   public void decompress(
       byte[] data, int dataOffset, int dataSize, byte[] dst, int dstOffset, int dstSize) {
-    try {
-      Zstd.decompressByteArray(dst, dstOffset, dstSize, data, dataOffset, dataSize);
-    } catch (RuntimeException e) {
-      throw new BongoException("Unexpected exception decompressing with zstd", e);
-    }
+    var decompressor = new ZstdDecompressor();
+    decompressor.decompress(data, dataOffset, dataSize, dst, dstOffset, dstSize);
   }
 }

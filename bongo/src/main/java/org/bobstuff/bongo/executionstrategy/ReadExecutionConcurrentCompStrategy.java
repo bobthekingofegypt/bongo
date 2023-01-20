@@ -2,32 +2,39 @@ package org.bobstuff.bongo.executionstrategy;
 
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.BobBsonBuffer;
+import org.bobstuff.bobbson.BobBsonConverter;
+import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
+import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.bobstuff.bongo.messages.BongoGetMoreRequest;
+import org.bobstuff.bongo.messages.BongoResponseHeader;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Slf4j
-public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStrategy<TModel> {
-  private static final BobBsonBuffer POISON_BUFFER = new BobBufferBobBsonBuffer(new byte[0]);
+public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutionStrategy<TModel> {
+  private static final WireProtocol.Response<BobBsonBuffer> POISON_BUFFER =
+      new WireProtocol.Response<>(
+          new BongoResponseHeader(), 0, new BobBufferBobBsonBuffer(new byte[0]));
   private ExecutorService executorService;
   private CompletionService<Void> completionService;
-  private BlockingQueue<BobBsonBuffer> decodeQueue;
+  private BlockingQueue<WireProtocol.Response<BobBsonBuffer>> decodeQueue;
   private BlockingQueue<BongoFindResponse<TModel>> responses;
   private BobBsonConverter<BongoFindRequest> findRequestConverter;
   private BobBsonConverter<BongoFindResponse<TModel>> findResponseConverter;
   private BobBsonConverter<BongoFindResponse<TModel>> findResponseConverterSkipBody;
   private int parserCount;
 
-  public ReadExecutionConcurrentStrategy(BobBsonConverter<TModel> converter, int parserCount) {
+  public ReadExecutionConcurrentCompStrategy(BobBsonConverter<TModel> converter, int parserCount) {
     this.findRequestConverter = new BongoFindRequestConverter();
     this.findResponseConverter = new BongoFindResponseConverter<TModel>(converter, false);
     this.findResponseConverterSkipBody = new BongoFindResponseConverter<TModel>(converter, true);
@@ -58,16 +65,18 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
           "Compression requested on call but no compressors registered");
     }
     var requestCompression = compressor != null && (compress == null || compress);
-
     var response =
         wireProtocol.sendReceiveCommandMessage(
             socket,
             findRequestConverter,
             new BongoFindRequest(identifier, findOptions),
             findResponseConverter,
-            requestCompression,
+            false,
             false);
 
+    if (response.getPayload().getOk() == 0.0) {
+      throw new BongoException(response.getPayload().getErrmsg());
+    }
     try {
       responses.put(response.getPayload());
     } catch (InterruptedException e) {
@@ -79,19 +88,53 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
           () -> {
             try {
               while (true) {
-                BobBsonBuffer buffer = decodeQueue.take();
-                if (buffer == POISON_BUFFER) {
+                var re = decodeQueue.take();
+                if (re == POISON_BUFFER) {
                   log.debug("poison decode entry found");
                   break;
                 }
                 log.debug("decoding a new entry");
-                buffer.setHead(5);
-                BsonReader reader = new BsonReader(buffer);
-                var result = findResponseConverter.read(reader);
+                if (re.getHeader().getOpCode() == 2013) {
+                  var buffer = re.getPayload();
+                  buffer.setHead(5);
+                  BsonReader reader = new BsonReader(buffer);
+                  var result = findResponseConverter.read(reader);
 
-                bufferPool.recycle(buffer);
-                if (result != null) {
-                  responses.put(result);
+                  bufferPool.recycle(buffer);
+                  if (result != null) {
+                    responses.put(result);
+                  }
+                } else {
+                  var decompressedMessageBuffer =
+                      bufferPool.allocate(re.getHeader().getMessageLength());
+                  var decompressedMessageBufferArray = decompressedMessageBuffer.getArray();
+                  if (decompressedMessageBufferArray == null) {
+                    throw new BongoException("Buffers internal array is not accessible");
+                  }
+                  var messageBufferArray = re.getPayload().getArray();
+                  if (messageBufferArray == null) {
+                    throw new BongoException("Buffers internal array is not accessible");
+                  }
+                  if (compressor == null) {
+                    throw new RuntimeException();
+                  }
+                  compressor.decompress(
+                      messageBufferArray,
+                      re.getPayload().getHead(),
+                      re.getPayload().getReadRemaining(),
+                      decompressedMessageBufferArray,
+                      decompressedMessageBuffer.getHead(),
+                      re.getHeader().getMessageLength());
+                  bufferPool.recycle(re.getPayload());
+                  decompressedMessageBuffer.setTail(re.getHeader().getMessageLength());
+                  decompressedMessageBuffer.setHead(5);
+                  BsonReader reader = new BsonReader(decompressedMessageBuffer);
+                  var result = findResponseConverter.read(reader);
+
+                  bufferPool.recycle(decompressedMessageBuffer);
+                  if (result != null) {
+                    responses.put(result);
+                  }
                 }
               }
             } catch (Exception e) {
@@ -105,10 +148,10 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     final Future<Void> fetcher =
         executorService.submit(
             () -> {
-              DynamicBobBsonBuffer getMoreMessage = null;
-              BongoFindResponse<TModel> result = null;
+              WireProtocol.Response<BobBsonBuffer> getMoreResponse = null;
               do {
-                if (cursorType != BongoCursorType.Exhaustible || result == null) {
+                //                  System.out.println("TESTING");
+                if (cursorType != BongoCursorType.Exhaustible || getMoreResponse == null) {
                   log.debug("sending fetch more request");
                   var getMoreRequest =
                       new BongoGetMoreRequest(
@@ -118,42 +161,25 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
 
                   log.debug("getmore command fired");
 
-                  var lastGetMoreMessage = getMoreMessage;
-                  if (lastGetMoreMessage == null) {
-                    lastGetMoreMessage =
-                        wireProtocol.prepareCommandMessage(
-                            socket,
-                            codec.converter(BongoGetMoreRequest.class),
-                            getMoreRequest,
-                            requestCompression,
-                            cursorType == BongoCursorType.Exhaustible,
-                            null,
-                            socket.getNextRequestId());
-                  }
-
-                  for (var buf : lastGetMoreMessage.getBuffers()) {
-                    socket.write(buf);
-                  }
-
-                  getMoreMessage = lastGetMoreMessage;
+                  wireProtocol.sendCommandMessage(
+                      socket,
+                      codec.converter(BongoGetMoreRequest.class),
+                      getMoreRequest,
+                      requestCompression,
+                      cursorType == BongoCursorType.Exhaustible);
                 }
 
-                WireProtocol.Response<BobBsonBuffer> getMoreResponse;
                 log.debug("concurrent strategy reading new batch");
-                getMoreResponse = wireProtocol.readRawServerResponse(socket, true);
+                getMoreResponse = wireProtocol.readRawServerResponse(socket, false);
 
-                BsonReader reader = new BsonReader(getMoreResponse.getPayload());
-                result = findResponseConverterSkipBody.read(reader);
+                //                BsonReader reader = new BsonReader(getMoreResponse.getPayload());
+                //                result = findResponseConverterSkipBody.read(reader);
                 try {
-                  decodeQueue.put(getMoreResponse.getPayload());
+                  decodeQueue.put(getMoreResponse);
                 } catch (InterruptedException e) {
                   throw new RuntimeException(e);
                 }
-              } while (result != null && result.getOk() == 1.0 && result.getId() != 0);
-
-              if (getMoreMessage != null) {
-                getMoreMessage.release();
-              }
+              } while (getMoreResponse.getFlagBits() == 2);
 
               return null;
             });
@@ -185,5 +211,11 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
 
   public void close() {
     executorService.shutdown();
+    executorService.shutdownNow();
+    try {
+      executorService.awaitTermination(10, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

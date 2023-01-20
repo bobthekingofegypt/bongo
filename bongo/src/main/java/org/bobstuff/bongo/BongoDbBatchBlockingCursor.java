@@ -3,6 +3,7 @@ package org.bobstuff.bongo;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
+import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -33,6 +34,9 @@ public class BongoDbBatchBlockingCursor<TModel> implements BongoDbBatchCursor<TM
     if (next == END_RESPONSE) {
       log.debug("hasNext in blocking cursor, next == endResponse");
       return false;
+    }
+    if (next.getBatch() == null) {
+      throw new BongoException("batch should never be null");
     }
     log.debug(
         "hasNext in blocking cursor, retreived batch size {} from queue", next.getBatch().size());

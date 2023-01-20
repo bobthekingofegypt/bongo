@@ -32,7 +32,8 @@ public class BongoWrappedBulkItems<TModel> {
   }
 
   public void write(BobBsonBuffer buffer) {
-    var writer = new BongoBsonWriterId(buffer);
+    //    var writer = new BongoBsonWriterId(buffer);
+    var writer = new BsonWriter(buffer);
     for (var i = index; i < items.size(); i += 1) {
       var item = items.get(i);
       if (item == null) {
@@ -47,10 +48,10 @@ public class BongoWrappedBulkItems<TModel> {
       converter.write(writer, item, false);
       writer.writeEndDocument();
 
-      var writtenId = writer.getWrittenId();
-      if (writtenId != null) {
-        ids.add(new ObjectId(writtenId));
-      }
+      //      var writtenId = writer.getWrittenId();
+      //      if (writtenId != null) {
+      //        ids.add(new ObjectId(writtenId));
+      //      }
 
       var end = buffer.getTail();
       if (end > (16777216 - 42)) {
@@ -58,7 +59,7 @@ public class BongoWrappedBulkItems<TModel> {
         break;
       } else {
         index += 1;
-        writer.reset();
+        //        writer.reset();
       }
     }
   }

@@ -1,12 +1,22 @@
 package org.bobstuff.bongo.models;
 
 import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.BsonWriterOptions;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 import org.bson.types.ObjectId;
+import org.checkerframework.checker.units.qual.N;
 
 @CompiledBson
+@Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Person {
   @BsonAttribute(value = "_id", order = 14)
   @BsonWriterOptions(writeNull = false)
@@ -27,7 +37,7 @@ public class Person {
   @BsonAttribute(value = "description", order = 3)
   private List<String> description;
 
-  @BsonAttribute(value = "occupation", order = 13)
+  @BsonAttribute(value = "scores", order = 13)
   private Scores scores;
 
   public ObjectId getMongoId() {
@@ -84,5 +94,28 @@ public class Person {
 
   public void setScores(Scores scores) {
     this.scores = scores;
+  }
+
+  @Override
+  public String toString() {
+    return "Person{"
+        + "mongoId="
+        + mongoId
+        + ", name='"
+        + name
+        + '\''
+        + ", age="
+        + age
+        + ", occupation='"
+        + occupation
+        + '\''
+        + ", address='"
+        + address
+        + '\''
+        + ", description="
+        + description
+        + ", scores="
+        + scores
+        + '}';
   }
 }

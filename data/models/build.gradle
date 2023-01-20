@@ -1,22 +1,17 @@
 
 plugins {
     id 'bobbson.java-conventions'
-    id 'application'
 }
 
 dependencies {
-    implementation project(':bongo')
-    implementation project(':data:models')
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.bobstuff.bobbson:processor:1.0'
     implementation 'org.bobstuff.bobbson:core:1.0'
-    implementation 'ch.qos.logback:logback-classic:1.4.4'
     implementation('org.bobstuff.bobbson:mongodb:1.0')
     implementation 'org.mongodb:bson:4.5.0'
     implementation 'org.checkerframework:checker-qual:3.28.0'
-    implementation 'com.google.guava:guava:31.1-jre'
-    implementation 'io.airlift:aircompressor:0.21'
     implementation("net.datafaker:datafaker:1.7.0")
-
 }
 
 test {
@@ -26,8 +21,4 @@ test {
 
 checkerFramework {
     skipCheckerFramework = true
-}
-
-application {
-    mainClass = 'org.bobstuff.bongo.Main'
 }

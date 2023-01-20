@@ -44,7 +44,15 @@ public class BongoCollection<TModel> {
   public @Nullable BongoInsertManyResult insertMany(
       List<TModel> items, WriteExecutionStrategy<TModel> writeStrategy, boolean compress) {
     return writeStrategy.execute(
-        identifier, model, items, compress, null , bufferPool, codec, connectionProvider, wireProtocol);
+        identifier,
+        model,
+        items,
+        compress,
+        null,
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol);
   }
 
   @Data
