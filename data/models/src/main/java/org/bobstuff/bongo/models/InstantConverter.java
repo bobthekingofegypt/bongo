@@ -1,5 +1,6 @@
 package org.bobstuff.bongo.models;
 
+import java.time.Instant;
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.BsonReader;
 import org.bobstuff.bobbson.writer.BsonWriter;
@@ -7,8 +8,6 @@ import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
-
-import java.time.Instant;
 
 public class InstantConverter implements BobBsonConverter<Instant> {
   @Override

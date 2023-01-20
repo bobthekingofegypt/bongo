@@ -24,7 +24,9 @@ public class CompanyDataGenerator {
               .postedAt(
                   faker
                       .date()
-                      .between(Date.from(Instant.parse("2007-03-01T13:00:00Z")), Date.from(Instant.parse("2017-03-01T13:00:00Z")))
+                      .between(
+                          Date.from(Instant.parse("2007-03-01T13:00:00Z")),
+                          Date.from(Instant.parse("2017-03-01T13:00:00Z")))
                       .toInstant())
               .build();
       reviews.add(review);
@@ -42,7 +44,9 @@ public class CompanyDataGenerator {
         .foundedDate(
             faker
                 .date()
-                .between(Date.from(Instant.parse("2007-03-01T13:00:00Z")), Date.from(Instant.parse("2017-03-01T13:00:00Z")))
+                .between(
+                    Date.from(Instant.parse("2007-03-01T13:00:00Z")),
+                    Date.from(Instant.parse("2017-03-01T13:00:00Z")))
                 .toInstant())
         .stats(
             Stats.builder()

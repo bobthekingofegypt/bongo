@@ -3,7 +3,6 @@ package org.bobstuff.bongo.models;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 
 @CompiledBson
@@ -19,9 +18,7 @@ public class Scores {
   private Double score6;
   private Double score7;
 
-  public Scores() {
-
-  }
+  public Scores() {}
 
   public Double getScore1() {
     return score1;

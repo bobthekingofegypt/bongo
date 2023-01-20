@@ -1,7 +1,6 @@
 package org.bobstuff.bongo.models.company;
 
 import java.time.Instant;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +18,7 @@ public class Review {
   private int stars;
   private String text;
   private String title;
+
   @BsonConverter(target = InstantConverter.class)
   private Instant postedAt;
 }

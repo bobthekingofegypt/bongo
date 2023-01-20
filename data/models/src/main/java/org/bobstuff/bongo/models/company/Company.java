@@ -2,7 +2,6 @@ package org.bobstuff.bongo.models.company;
 
 import java.time.Instant;
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,8 +27,10 @@ public class Company {
   private String name;
   private String description;
   private Address address;
+
   @BsonConverter(target = InstantConverter.class)
   private Instant foundedDate;
+
   private Stats stats;
   private Person owner;
   private int reviewScore;

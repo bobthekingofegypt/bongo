@@ -1,11 +1,14 @@
 package bongo;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
@@ -17,7 +20,6 @@ import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentCompStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
-import org.bobstuff.bongo.models.Person;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -26,10 +28,6 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.concurrent.TimeUnit;
-
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 @BenchmarkMode({Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)

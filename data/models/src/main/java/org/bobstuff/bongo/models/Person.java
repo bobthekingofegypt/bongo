@@ -1,7 +1,6 @@
 package org.bobstuff.bongo.models;
 
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +9,6 @@ import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.BsonWriterOptions;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 import org.bson.types.ObjectId;
-import org.checkerframework.checker.units.qual.N;
 
 @CompiledBson
 @Builder
