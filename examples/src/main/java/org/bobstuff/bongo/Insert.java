@@ -11,7 +11,8 @@ import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
+import org.bobstuff.bongo.exception.BongoBulkWriteException;
+import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
@@ -44,38 +45,29 @@ public class Insert {
     bongo.connect();
 
     var database = bongo.getDatabase("test_data");
-    var collection = database.getCollection("companies", Company.class);
+    var collection =
+        database
+            .getCollection("companies", Company.class)
+            .withWriteConcern(new BongoWriteConcern(1, false));
 
     Faker faker = new Faker(new Random(23));
     var companies = new ArrayList<Company>();
-    for (var i = 0; i < 400000; i += 1) {
+    for (var i = 0; i < 9000; i += 1) {
       companies.add(CompanyDataGenerator.company(faker));
     }
-    //    var people = new ArrayList<Person>();
-    //    for (var i = 0; i < 1000000; i += 1) {
-    //      var person = new Person();
-    //      person.setName(faker.name().fullName());
-    //      person.setAge(faker.number().numberBetween(1, 99));
-    //      person.setOccupation(faker.job().position());
-    //      person.setAddress(faker.lorem().characters(1200));
-    //      person.setDescription(faker.lorem().paragraphs(40));
-    //      var scores = new Scores();
-    //      scores.setScore1(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore2(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore3(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore4(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore5(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore6(faker.number().randomDouble(2, 0, 1000));
-    //      scores.setScore7(faker.number().randomDouble(2, 0, 1000));
-    //      person.setScores(scores);
-    //      people.add(person);
-    //    }
-
-    var strategy = new WriteExecutionSerialStrategy<Company>();
-    //    var strategy = new WriteExecutionConcurrentStrategy<Person>(2, 5);
+    //    var strategy = new WriteExecutionSerialStrategy<Company>();
+    var strategy = new WriteExecutionConcurrentStrategy<Company>(5, 3);
     Stopwatch stopwatch = Stopwatch.createStarted();
     for (var i = 0; i < 1; i += 1) {
-      collection.insertMany(companies, strategy, false);
+      try {
+        var result =
+            collection.insertMany(
+                companies,
+                strategy,
+                BongoInsertManyOptions.builder().ordered(false).compress(false).build());
+      } catch (BongoBulkWriteException e) {
+        System.out.println(e.getWriteErrors().size());
+      }
     }
     System.out.println(stopwatch.elapsed(TimeUnit.MILLISECONDS));
     System.out.println(stopwatch.elapsed(TimeUnit.MILLISECONDS) / 10);

@@ -70,6 +70,29 @@ public class BongoBsonWriterId extends BsonWriter {
   }
 
   @Override
+  public void writeNull(@NonNull String field) {
+    this.writeNull(field.getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Override
+  public void writeNull(byte @NonNull [] field) {
+    if (contextLevel == 1 && Arrays.equals(ID_KEY_BYTES, field)) {
+      hasWrittenId = true;
+      writtenId = null;
+    }
+    super.writeNull(field);
+  }
+
+  @Override
+  public void writeNull() {
+    if (contextLevel == 1 && ID_KEY.equals(lastName)) {
+      hasWrittenId = true;
+      writtenId = null;
+    }
+    super.writeNull();
+  }
+
+  @Override
   public void writeEndDocument() {
     contextLevel -= 1;
     if (contextLevel == 0 && !hasWrittenId) {

@@ -11,7 +11,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.InsertManyOptions;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +27,7 @@ import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
 import org.bobstuff.bongo.models.Person;
 import org.bobstuff.bongo.models.Scores;
+import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -40,19 +40,19 @@ import org.openjdk.jmh.infra.Blackhole;
 @BenchmarkMode({Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Measurement(iterations = 10, time = 10000, timeUnit = MILLISECONDS)
-public class BasicInsertBenchmark {
+public class CompanyInsertBenchmark {
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
     public BongoDatabase bongoDatabase;
-    public BongoCollection<Person> collection;
+    public BongoCollection<Company> collection;
 
     public BongoCodec codec;
 
-    public ReadExecutionConcurrentStrategy<Person> concurrentStrategy;
+    public ReadExecutionConcurrentStrategy<Company> concurrentStrategy;
 
-    public WriteExecutionConcurrentStrategy<Person> writeConcurrentStrategy;
-    public WriteExecutionConcurrentStrategy<Person> writeConcurrentStrategy3;
+    public WriteExecutionConcurrentStrategy<Company> writeConcurrentStrategy;
+    public WriteExecutionConcurrentStrategy<Company> writeConcurrentStrategy3;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -76,13 +76,13 @@ public class BasicInsertBenchmark {
       bongo.connect();
 
       var database = bongo.getDatabase("test_data");
-      var collection = database.getCollection("people4", Person.class);
+      var collection = database.getCollection("companies4", Company.class);
 
-      this.writeConcurrentStrategy = new WriteExecutionConcurrentStrategy<Person>(3, 1);
-      this.writeConcurrentStrategy3 = new WriteExecutionConcurrentStrategy<Person>(5, 5);
+      this.writeConcurrentStrategy = new WriteExecutionConcurrentStrategy<Company>(3, 1);
+      this.writeConcurrentStrategy3 = new WriteExecutionConcurrentStrategy<Company>(3, 5);
       this.concurrentStrategy =
-          new ReadExecutionConcurrentStrategy<Person>(
-              settings.getCodec().converter(Person.class), 1);
+          new ReadExecutionConcurrentStrategy<Company>(
+              settings.getCodec().converter(Company.class), 1);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;
@@ -102,13 +102,11 @@ public class BasicInsertBenchmark {
   public static class MyMongoClientCompression {
     public MongoClient client;
     public MongoDatabase mongoDatabase;
-    public MongoCollection<Person> mongoCollection;
+    public MongoCollection<Company> mongoCollection;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
       PojoCodecProvider.Builder providerBuilder = PojoCodecProvider.builder();
-      providerBuilder.register(Person.class);
-      providerBuilder.register(Scores.class);
       var provider = providerBuilder.build();
       CodecRegistry pojoCodecRegistry =
           CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build());
@@ -129,7 +127,7 @@ public class BasicInsertBenchmark {
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
-      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
+      mongoCollection = mongoDatabase.getCollection("companies4", Company.class);
     }
   }
 
@@ -137,7 +135,7 @@ public class BasicInsertBenchmark {
   public static class MyMongoClient {
     public MongoClient client;
     public MongoDatabase mongoDatabase;
-    public MongoCollection<Person> mongoCollection;
+    public MongoCollection<Company> mongoCollection;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -164,7 +162,7 @@ public class BasicInsertBenchmark {
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
-      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
+      mongoCollection = mongoDatabase.getCollection("companies4", Company.class);
     }
 
     @TearDown(Level.Trial)
@@ -175,37 +173,22 @@ public class BasicInsertBenchmark {
     }
   }
 
-  private List<Person> people;
+  private List<Company> companies;
 
   @Setup
   public void setup() {
 
     Faker faker = new Faker(new Random(23));
-    people = new ArrayList<>();
+    companies = new ArrayList<>();
     for (var i = 0; i < 100000; i += 1) {
-      var person = new Person();
-      person.setName(faker.name().fullName());
-      person.setAge(faker.number().numberBetween(1, 99));
-      person.setOccupation(faker.job().position());
-      person.setAddress(faker.lorem().characters(1200));
-      person.setDescription(Arrays.asList(faker.color().hex(), faker.color().hex()));
-      var scores = new Scores();
-      scores.setScore1(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore2(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore3(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore4(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore5(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore6(faker.number().randomDouble(2, 0, 1000));
-      scores.setScore7(faker.number().randomDouble(2, 0, 1000));
-      person.setScores(scores);
-      people.add(person);
+      companies.add(CompanyDataGenerator.company(faker));
     }
   }
 
   @Benchmark
   public void bongo(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     state.collection.insertMany(
-        people,
+        companies,
         new WriteExecutionSerialStrategy<>(),
         BongoInsertManyOptions.builder().compress(false).build());
   }
@@ -213,7 +196,7 @@ public class BasicInsertBenchmark {
   @Benchmark
   public void bongoUnordered(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     state.collection.insertMany(
-        people,
+        companies,
         new WriteExecutionSerialStrategy<>(),
         BongoInsertManyOptions.builder().ordered(false).compress(false).build());
   }
@@ -224,7 +207,7 @@ public class BasicInsertBenchmark {
         .collection
         .withWriteConcern(new BongoWriteConcern(0, false))
         .insertMany(
-            people,
+            companies,
             new WriteExecutionSerialStrategy<>(),
             BongoInsertManyOptions.builder().ordered(false).compress(false).build());
   }
@@ -235,19 +218,19 @@ public class BasicInsertBenchmark {
         .collection
         .withWriteConcern(new BongoWriteConcern(0, false))
         .insertMany(
-            people,
+            companies,
             state.writeConcurrentStrategy3,
             BongoInsertManyOptions.builder().ordered(false).compress(false).build());
   }
 
   @Benchmark
   public void bongoUnacknConc(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-    var strategy = new WriteExecutionConcurrentStrategy<Person>(3, 5);
+    var strategy = new WriteExecutionConcurrentStrategy<Company>(3, 5);
     state
         .collection
         .withWriteConcern(new BongoWriteConcern(0, false))
         .insertMany(
-            people,
+            companies,
             strategy,
             BongoInsertManyOptions.builder().ordered(false).compress(false).build());
     strategy.close();
@@ -294,7 +277,7 @@ public class BasicInsertBenchmark {
 
   @Benchmark
   public void mongo(Blackhole bh, MyMongoClient state) {
-    state.mongoCollection.insertMany(people);
+    state.mongoCollection.insertMany(companies);
   }
 
   @Benchmark
@@ -302,7 +285,7 @@ public class BasicInsertBenchmark {
     state
         .mongoCollection
         .withWriteConcern(WriteConcern.UNACKNOWLEDGED)
-        .insertMany(people, new InsertManyOptions().ordered(false));
+        .insertMany(companies, new InsertManyOptions().ordered(false));
   }
 
   //  @Benchmark

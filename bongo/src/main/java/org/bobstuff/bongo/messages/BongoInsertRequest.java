@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bongo.BongoWriteConcern;
 
 @CompiledBson
 @Data
@@ -16,6 +17,8 @@ public class BongoInsertRequest {
 
   @BsonAttribute("$db")
   private String db;
+
+  private BongoWriteConcern writeConcern;
 
   private boolean ordered;
 }

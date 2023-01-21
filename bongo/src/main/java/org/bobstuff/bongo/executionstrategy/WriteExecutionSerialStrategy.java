@@ -1,42 +1,47 @@
 package org.bobstuff.bongo.executionstrategy;
 
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BufferDataPool;
-import org.bobstuff.bobbson.ContextStack;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
+import org.bobstuff.bongo.compressors.BongoCompressor;
+import org.bobstuff.bongo.exception.BongoBulkWriteException;
+import org.bobstuff.bongo.exception.BongoException;
+import org.bobstuff.bongo.messages.BongoBulkWriteResponse;
 import org.bobstuff.bongo.messages.BongoInsertRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
-import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+@Slf4j
 public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrategy<TModel> {
   @Override
-  public @Nullable BongoInsertManyResult execute(
+  public BongoInsertManyResult execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
       List<TModel> items,
-      @Nullable Boolean compress,
+      BongoInsertManyOptions options,
       @Nullable BongoInsertProcessor<TModel> insertProcessor,
       BufferDataPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,
-      WireProtocol wireProtocol) {
-    var wrappedItems = new BongoWrappedBulkItems<>(items, codec.converter(model), insertProcessor);
+      WireProtocol wireProtocol,
+      BongoWriteConcern writeConcern) {
+    var wrappedItems =
+        new BongoWrappedBulkItems<>(items, codec.converter(model), insertProcessor, 0);
     var socket = connectionProvider.getReadConnection();
-    var compressor = socket.getCompressor();
-    if (compressor == null && compress != null && compress) {
-      throw new IllegalStateException(
-          "Compression requested on call but no compressors registered");
-    }
-    var requestCompression = compressor != null && (compress == null || compress);
-    var contextStack = new ContextStack();
-    var count = 0;
+    var requestCompression =
+        BongoCompressor.shouldCompress(socket.getCompressor(), options.getCompress());
+
+    var tracker = new BongoBulkWriteTracker(options.isOrdered());
 
     while (wrappedItems.hasMore()) {
       var insertRequest =
           new BongoInsertRequest(
-              identifier.getCollectionName(), identifier.getDatabaseName(), false);
+              identifier.getCollectionName(),
+              identifier.getDatabaseName(),
+              writeConcern,
+              options.isOrdered());
       var payload =
           BongoPayload.<TModel>builder()
               .identifier("documents")
@@ -51,15 +56,38 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
           false,
           payload);
 
-      var response = wireProtocol.readServerResponse(socket, codec.converter(BsonDocument.class));
+      var response =
+          wireProtocol.readServerResponse(socket, codec.converter(BongoBulkWriteResponse.class));
+      var responsePayload = response.getPayload();
 
-      //      System.out.println(response.getPayload());
+      if (responsePayload == null) {
+        throw new BongoException("Unable to read response to bulk write request");
+      }
+
+      if (log.isTraceEnabled()) {
+        log.trace(responsePayload.toString());
+      }
+
+      tracker.addResponse(responsePayload);
+
+      if (responsePayload.getOk() == 0) {
+        // TODO command exception
+        throw new BongoException("This should be a command exception");
+      } else if (responsePayload.getOk() == 1.0 && tracker.shouldAbort()) {
+        throw new BongoBulkWriteException(tracker.getWriteErrors());
+      }
+    }
+
+    if (tracker.hasErrors()) {
+      throw new BongoBulkWriteException(tracker.getWriteErrors());
     }
 
     socket.release();
 
-    //    System.out.println(wrappedItems.getIds());
-    return null;
+    if (writeConcern.isAcknowledged()) {
+      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
+    }
+    return new BongoInsertManyResultUnacknowledged();
   }
 
   public void close() {}

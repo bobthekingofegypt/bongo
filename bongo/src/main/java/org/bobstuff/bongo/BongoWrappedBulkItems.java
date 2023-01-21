@@ -1,12 +1,11 @@
 package org.bobstuff.bongo;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BobBsonConverter;
-import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.exception.BongoException;
-import org.bson.types.ObjectId;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoWrappedBulkItems<TModel> {
@@ -14,26 +13,28 @@ public class BongoWrappedBulkItems<TModel> {
   BobBsonConverter<TModel> converter;
   @Nullable BongoInsertProcessor<TModel> insertProcessor;
   private int index;
-  private List<ObjectId> ids;
+  private int indexOffset;
+  private Map<Integer, byte[]> ids;
 
   public BongoWrappedBulkItems(
       List<TModel> items,
       BobBsonConverter<TModel> converter,
-      @Nullable BongoInsertProcessor<TModel> insertProcessor) {
-    this.ids = new ArrayList<>(items.size());
+      @Nullable BongoInsertProcessor<TModel> insertProcessor,
+      int indexOffset) {
+    this.ids = new HashMap<>(items.size());
     this.items = items;
     this.converter = converter;
     this.insertProcessor = insertProcessor;
     index = 0;
+    this.indexOffset = indexOffset;
   }
 
-  public List<ObjectId> getIds() {
+  public Map<Integer, byte[]> getIds() {
     return ids;
   }
 
   public void write(BobBsonBuffer buffer) {
-    //    var writer = new BongoBsonWriterId(buffer);
-    var writer = new BsonWriter(buffer);
+    var writer = new BongoBsonWriterId(buffer);
     for (var i = index; i < items.size(); i += 1) {
       var item = items.get(i);
       if (item == null) {
@@ -48,10 +49,10 @@ public class BongoWrappedBulkItems<TModel> {
       converter.write(writer, item, false);
       writer.writeEndDocument();
 
-      //      var writtenId = writer.getWrittenId();
-      //      if (writtenId != null) {
-      //        ids.add(new ObjectId(writtenId));
-      //      }
+      var writtenId = writer.getWrittenId();
+      if (writtenId != null) {
+        ids.put(i + indexOffset, writtenId);
+      }
 
       var end = buffer.getTail();
       if (end > (16777216 - 42)) {
@@ -59,7 +60,7 @@ public class BongoWrappedBulkItems<TModel> {
         break;
       } else {
         index += 1;
-        //        writer.reset();
+        writer.reset();
       }
     }
   }

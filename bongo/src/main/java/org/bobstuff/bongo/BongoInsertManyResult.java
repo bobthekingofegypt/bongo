@@ -1,3 +1,9 @@
 package org.bobstuff.bongo;
 
-public interface BongoInsertManyResult {}
+import java.util.Map;
+
+public interface BongoInsertManyResult {
+  Map<Integer, byte[]> getInsertedIds();
+
+  boolean isAcknowledged();
+}
