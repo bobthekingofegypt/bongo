@@ -15,7 +15,6 @@ public class BongoFindIterable<TModel> {
 
   private @Nullable Boolean compress;
   private BongoCursorType cursorType = BongoCursorType.Default;
-
   private BongoConnectionProvider connectionProvider;
   private BongoCodec codec;
 

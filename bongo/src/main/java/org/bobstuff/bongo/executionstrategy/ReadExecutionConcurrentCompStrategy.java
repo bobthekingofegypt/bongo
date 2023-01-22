@@ -3,7 +3,6 @@ package org.bobstuff.bongo.executionstrategy;
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.BsonReader;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
@@ -29,15 +28,9 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
   private CompletionService<Void> completionService;
   private BlockingQueue<WireProtocol.Response<BobBsonBuffer>> decodeQueue;
   private BlockingQueue<BongoFindResponse<TModel>> responses;
-  private BobBsonConverter<BongoFindRequest> findRequestConverter;
-  private BobBsonConverter<BongoFindResponse<TModel>> findResponseConverter;
-  private BobBsonConverter<BongoFindResponse<TModel>> findResponseConverterSkipBody;
   private int parserCount;
 
-  public ReadExecutionConcurrentCompStrategy(BobBsonConverter<TModel> converter, int parserCount) {
-    this.findRequestConverter = new BongoFindRequestConverter();
-    this.findResponseConverter = new BongoFindResponseConverter<TModel>(converter, false);
-    this.findResponseConverterSkipBody = new BongoFindResponseConverter<TModel>(converter, true);
+  public ReadExecutionConcurrentCompStrategy(int parserCount) {
     this.executorService = Executors.newFixedThreadPool(parserCount + 2);
     this.completionService = new ExecutorCompletionService<>(executorService);
     this.decodeQueue = new ArrayBlockingQueue<>(50);
@@ -57,6 +50,11 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
+    var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
+    var findResponseConverter =
+        new BongoFindResponseConverter<TModel>(codec.converter(model), false);
+    var findResponseConverterSkipBody =
+        new BongoFindResponseConverter<TModel>(codec.converter(model), true);
     var socket = connectionProvider.getReadConnection();
     var serverAddress = socket.getServerAddress();
     var compressor = socket.getCompressor();
@@ -69,7 +67,7 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
         wireProtocol.sendReceiveCommandMessage(
             socket,
             findRequestConverter,
-            new BongoFindRequest(identifier, findOptions),
+            new BongoFindRequest(identifier, findOptions, filter),
             findResponseConverter,
             false,
             false);

@@ -5,11 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoCollection<TModel> {
   private Identifier identifier;
@@ -67,8 +69,21 @@ public class BongoCollection<TModel> {
         writeConcern);
   }
 
-  public BongoFindIterable<TModel> find(
-      BsonDocument filter, BongoFindOptions findOptions, ReadExecutionStrategy readStrategy) {
+  public @Nullable TModel findOne() {
+    return this.findOne(new BsonDocument());
+  }
+
+  public @Nullable TModel findOne(BsonDocument filter) {
+    var findIterable = this.find(new ReadExecutionSerialStrategy<>());
+    var iterator =
+        findIterable.filter(filter).options(BongoFindOptions.builder().limit(1).build()).cursor();
+    if (iterator.hasNext()) {
+      return iterator.next();
+    }
+    return null;
+  }
+
+  public BongoFindIterable<TModel> find(ReadExecutionStrategy readStrategy) {
     return new BongoFindIterable<>(
         identifier, model, connectionProvider, codec, wireProtocol, bufferPool, readStrategy);
   }

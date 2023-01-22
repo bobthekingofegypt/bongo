@@ -53,7 +53,7 @@ public class Main {
               settings.getCodec().converter(Person.class), 5);
       var iter =
           collection
-              .find(null, null, strategy)
+              .find(strategy)
               .options(BongoFindOptions.builder().build())
               .compress(true)
               .cursorType(BongoCursorType.Exhaustible)

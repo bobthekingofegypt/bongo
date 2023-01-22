@@ -16,14 +16,6 @@ import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrategy<TModel> {
-  private BobBsonConverter<BongoFindRequest> findRequestConverter;
-  private BobBsonConverter<BongoFindResponse<TModel>> findResponseConverter;
-
-  public ReadExecutionSerialStrategy(BobBsonConverter<TModel> converter) {
-    this.findRequestConverter = new BongoFindRequestConverter();
-    this.findResponseConverter = new BongoFindResponseConverter<TModel>(converter, false);
-  }
-
   @Override
   public BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
@@ -36,6 +28,10 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
+    // TODO can we avoid these allocations
+    var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
+    var findResponseConverter =
+        new BongoFindResponseConverter<TModel>(codec.converter(model), false);
 
     var socket = connectionProvider.getReadConnection();
     var serverAddress = socket.getServerAddress();
@@ -50,7 +46,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
         wireProtocol.sendReceiveCommandMessage(
             socket,
             findRequestConverter,
-            new BongoFindRequest(identifier, findOptions),
+            new BongoFindRequest(identifier, findOptions, filter),
             findResponseConverter,
             requestCompression,
             false);

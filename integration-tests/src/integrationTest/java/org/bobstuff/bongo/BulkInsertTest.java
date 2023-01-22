@@ -70,15 +70,9 @@ public class BulkInsertTest {
 
     data.setMongoId(new ObjectId(insertResult.getInsertedId()));
 
-    var result =
-        collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<>(settings.getCodec().converter(Company.class)))
-            .cursor();
+    var result = collection.findOne();
 
-    Assertions.assertEquals(data, result.next());
+    Assertions.assertEquals(data, result);
     Assertions.assertNotNull(insertResult);
   }
 
@@ -115,10 +109,7 @@ public class BulkInsertTest {
 
     var result =
         collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<>(settings.getCodec().converter(Company.class)))
+            .find(new ReadExecutionSerialStrategy<>())
             .cursor();
 
     Assertions.assertEquals(data, result.next());

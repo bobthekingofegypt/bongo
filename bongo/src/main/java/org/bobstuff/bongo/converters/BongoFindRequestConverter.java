@@ -3,16 +3,26 @@ package org.bobstuff.bongo.converters;
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.messages.BongoFindRequest;
+import org.bson.BsonDocument;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 
+import java.nio.charset.StandardCharsets;
+
 public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequest> {
+  private BobBsonConverter<BsonDocument> documentConverter;
+
+  public BongoFindRequestConverter(BobBsonConverter<BsonDocument> documentConverter) {
+    this.documentConverter = documentConverter;
+  }
+
   @Override
   public void write(
       @UnknownKeyFor @NonNull @Initialized BsonWriter bsonWriter, @NonNull BongoFindRequest value) {
     var identifier = value.getIdentifier();
     var findOptions = value.getFindOptions();
+    var filter = value.getFilter();
 
     bsonWriter.writeStartDocument();
     bsonWriter.writeString("find", identifier.getCollectionName());
@@ -25,6 +35,10 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
       if (findOptions.getSkip() > 0) {
         bsonWriter.writeInteger("skip", findOptions.getSkip());
       }
+    }
+
+    if (filter != null) {
+      documentConverter.write(bsonWriter, "filter".getBytes(StandardCharsets.UTF_8), filter);
     }
 
     bsonWriter.writeEndDocument();

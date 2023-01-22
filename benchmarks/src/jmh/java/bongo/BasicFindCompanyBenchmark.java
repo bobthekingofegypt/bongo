@@ -73,9 +73,7 @@ public class BasicFindCompanyBenchmark {
       var database = bongo.getDatabase("test_data");
       var collection = database.getCollection("companies", Company.class);
 
-      this.concurrentStrategy =
-          new ReadExecutionConcurrentStrategy<Company>(
-              settings.getCodec().converter(Company.class), 3);
+      this.concurrentStrategy = new ReadExecutionConcurrentStrategy<Company>(3);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;
@@ -171,10 +169,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Company>(state.codec.converter(Company.class)))
+            .find(new ReadExecutionSerialStrategy<Company>())
             .compress(false)
             .cursorType(BongoCursorType.Default)
             .cursor();
@@ -193,7 +188,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(null, null, state.concurrentStrategy)
+            .find(state.concurrentStrategy)
             .compress(true)
             .cursorType(BongoCursorType.Default)
             .cursor();
@@ -212,10 +207,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Company>(state.codec.converter(Company.class)))
+            .find(new ReadExecutionSerialStrategy<Company>())
             .compress(true)
             .cursorType(BongoCursorType.Default)
             .cursor();
@@ -234,7 +226,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(null, null, state.concurrentStrategy)
+            .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
             .cursor();
@@ -248,12 +240,11 @@ public class BasicFindCompanyBenchmark {
 
   @Benchmark
   public void bongoConc1(Blackhole bh, MyBongoClient state) {
-    var strategy =
-        new ReadExecutionConcurrentStrategy<Company>(state.codec.converter(Company.class), 1);
+    var strategy = new ReadExecutionConcurrentStrategy<Company>(1);
     var iter =
         state
             .collection
-            .find(null, null, strategy)
+            .find(strategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
             .cursor();
@@ -269,12 +260,11 @@ public class BasicFindCompanyBenchmark {
 
   @Benchmark
   public void bongoConc3(Blackhole bh, MyBongoClient state) {
-    var strategy =
-        new ReadExecutionConcurrentStrategy<Company>(state.codec.converter(Company.class), 3);
+    var strategy = new ReadExecutionConcurrentStrategy<Company>(3);
     var iter =
         state
             .collection
-            .find(null, null, strategy)
+            .find(strategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
             .cursor();
@@ -292,10 +282,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Company>(state.codec.converter(Company.class)))
+            .find(new ReadExecutionSerialStrategy<Company>())
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
             .cursor();
@@ -311,13 +298,8 @@ public class BasicFindCompanyBenchmark {
 
   @Benchmark
   public void bongoDelayDecomp(Blackhole bh, MyBongoClient state) {
-    var strategy = new ReadExecutionConcurrentCompStrategy(state.codec.converter(Company.class), 3);
-    var iter =
-        state
-            .collection
-            .find(null, null, strategy)
-            .cursorType(BongoCursorType.Exhaustible)
-            .cursor();
+    var strategy = new ReadExecutionConcurrentCompStrategy(3);
+    var iter = state.collection.find(strategy).cursorType(BongoCursorType.Exhaustible).cursor();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -334,10 +316,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(
-                null,
-                null,
-                new ReadExecutionSerialStrategy<Company>(state.codec.converter(Company.class)))
+            .find(new ReadExecutionSerialStrategy<Company>())
             .cursorType(BongoCursorType.Exhaustible)
             .cursor();
 
@@ -355,7 +334,7 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(null, null, state.concurrentStrategy)
+            .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
             .cursor();
 
