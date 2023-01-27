@@ -2,13 +2,17 @@ package org.bobstuff.bongo;
 
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.BsonType;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bson.types.ObjectId;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoObjectIdConverter implements BobBsonConverter<ObjectId> {
   @Override
-  public ObjectId read(BsonReader bsonReader) {
+  public @Nullable ObjectId read(BsonReader bsonReader) {
+    if (bsonReader.getCurrentBsonType() == BsonType.NULL) {
+      return null;
+    }
     return new ObjectId(bsonReader.readObjectId());
   }
 
