@@ -37,7 +37,7 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
       }
     }
 
-    if (filter != null) {
+    if (filter != null && filter.size() > 0) {
       documentConverter.write(bsonWriter, "filter".getBytes(StandardCharsets.UTF_8), filter);
     }
 
