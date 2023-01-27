@@ -134,7 +134,7 @@ public class BasicFindThreadedBenchmark {
             .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
             .cursorType(BongoCursorType.Default)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -154,7 +154,7 @@ public class BasicFindThreadedBenchmark {
             .compress(true)
             .options(BongoFindOptions.builder().limit(1000).build())
             .cursorType(BongoCursorType.Default)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -174,7 +174,7 @@ public class BasicFindThreadedBenchmark {
             .cursorType(BongoCursorType.Exhaustible)
             .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -194,7 +194,7 @@ public class BasicFindThreadedBenchmark {
             .cursorType(BongoCursorType.Exhaustible)
             .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -213,7 +213,7 @@ public class BasicFindThreadedBenchmark {
             .find(new ReadExecutionSerialStrategy<Person>())
             .cursorType(BongoCursorType.Exhaustible)
             .options(BongoFindOptions.builder().limit(1000).build())
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {

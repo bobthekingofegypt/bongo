@@ -110,7 +110,7 @@ public class BulkInsertTest {
     var result =
         collection
             .find(new ReadExecutionSerialStrategy<>())
-            .cursor();
+            .iterator();
 
     Assertions.assertEquals(data, result.next());
     Assertions.assertEquals(data2, result.next());

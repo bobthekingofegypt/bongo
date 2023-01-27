@@ -7,6 +7,8 @@ import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.List;
+
 public class BongoFindIterable<TModel> {
   private BongoCollection.Identifier identifier;
   private Class<TModel> model;
@@ -60,7 +62,15 @@ public class BongoFindIterable<TModel> {
     return this;
   }
 
-  public BongoCursor<TModel> cursor() {
+  public List<TModel> into(List<TModel> results) {
+    var iterator = this.iterator();
+    while (iterator.hasNext()) {
+      results.add(iterator.next());
+    }
+    return results;
+  }
+
+  public BongoCursor<TModel> iterator() {
     // execute first call, pass results to cursor so it can issue subsequent requests
     return new BongoCursor<TModel>(
         readExecutionStrategy.execute(

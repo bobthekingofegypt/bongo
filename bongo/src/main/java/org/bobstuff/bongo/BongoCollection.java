@@ -76,7 +76,7 @@ public class BongoCollection<TModel> {
   public @Nullable TModel findOne(BsonDocument filter) {
     var findIterable = this.find(new ReadExecutionSerialStrategy<>());
     var iterator =
-        findIterable.filter(filter).options(BongoFindOptions.builder().limit(1).build()).cursor();
+        findIterable.filter(filter).options(BongoFindOptions.builder().limit(1).build()).iterator();
     if (iterator.hasNext()) {
       return iterator.next();
     }

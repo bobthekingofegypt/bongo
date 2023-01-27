@@ -172,7 +172,7 @@ public class BasicFindCompanyBenchmark {
             .find(new ReadExecutionSerialStrategy<Company>())
             .compress(false)
             .cursorType(BongoCursorType.Default)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -191,7 +191,7 @@ public class BasicFindCompanyBenchmark {
             .find(state.concurrentStrategy)
             .compress(true)
             .cursorType(BongoCursorType.Default)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -210,7 +210,7 @@ public class BasicFindCompanyBenchmark {
             .find(new ReadExecutionSerialStrategy<Company>())
             .compress(true)
             .cursorType(BongoCursorType.Default)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -229,7 +229,7 @@ public class BasicFindCompanyBenchmark {
             .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -247,7 +247,7 @@ public class BasicFindCompanyBenchmark {
             .find(strategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -267,7 +267,7 @@ public class BasicFindCompanyBenchmark {
             .find(strategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -285,7 +285,7 @@ public class BasicFindCompanyBenchmark {
             .find(new ReadExecutionSerialStrategy<Company>())
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -299,7 +299,7 @@ public class BasicFindCompanyBenchmark {
   @Benchmark
   public void bongoDelayDecomp(Blackhole bh, MyBongoClient state) {
     var strategy = new ReadExecutionConcurrentCompStrategy(3);
-    var iter = state.collection.find(strategy).cursorType(BongoCursorType.Exhaustible).cursor();
+    var iter = state.collection.find(strategy).cursorType(BongoCursorType.Exhaustible).iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -318,7 +318,7 @@ public class BasicFindCompanyBenchmark {
             .collection
             .find(new ReadExecutionSerialStrategy<Company>())
             .cursorType(BongoCursorType.Exhaustible)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
@@ -336,7 +336,7 @@ public class BasicFindCompanyBenchmark {
             .collection
             .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
-            .cursor();
+            .iterator();
 
     int i = 0;
     while (iter.hasNext()) {
