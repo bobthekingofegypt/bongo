@@ -69,10 +69,10 @@ public class BasicFindThreadedBenchmark {
       var collection = database.getCollection("people", Person.class);
 
       this.serialStrategy =
-          new ReadExecutionSerialStrategy<>(settings.getCodec().converter(Person.class));
+          new ReadExecutionSerialStrategy<>();
       this.concurrentStrategy =
           new ReadExecutionConcurrentStrategy<Person>(
-              settings.getCodec().converter(Person.class), 1);
+              1);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;
@@ -130,7 +130,7 @@ public class BasicFindThreadedBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
+            .find(new ReadExecutionSerialStrategy<Person>())
             .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
             .cursorType(BongoCursorType.Default)
@@ -150,7 +150,7 @@ public class BasicFindThreadedBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
+            .find(new ReadExecutionSerialStrategy<Person>())
             .compress(true)
             .options(BongoFindOptions.builder().limit(1000).build())
             .cursorType(BongoCursorType.Default)
@@ -190,7 +190,7 @@ public class BasicFindThreadedBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
+            .find(new ReadExecutionSerialStrategy<Person>())
             .cursorType(BongoCursorType.Exhaustible)
             .options(BongoFindOptions.builder().limit(1000).build())
             .compress(false)
@@ -210,7 +210,7 @@ public class BasicFindThreadedBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Person>(state.codec.converter(Person.class)))
+            .find(new ReadExecutionSerialStrategy<Person>())
             .cursorType(BongoCursorType.Exhaustible)
             .options(BongoFindOptions.builder().limit(1000).build())
             .cursor();

@@ -82,7 +82,7 @@ public class CompanyInsertBenchmark {
       this.writeConcurrentStrategy3 = new WriteExecutionConcurrentStrategy<Company>(3, 5);
       this.concurrentStrategy =
           new ReadExecutionConcurrentStrategy<Company>(
-              settings.getCodec().converter(Company.class), 1);
+              1);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;
