@@ -97,13 +97,13 @@ public class BongoCollection<TModel> {
   }
 
   public BongoInsertManyResult insertMany(List<TModel> items) {
-    var writeStrategy = new WriteExecutionSerialStrategy<TModel>();
-    return this.insertMany(items, writeStrategy);
+    return this.insertMany(items, BongoInsertManyOptions.builder().build());
   }
 
   public BongoInsertManyResult insertMany(List<TModel> items, BongoInsertManyOptions options) {
-    var writeStrategy = new WriteExecutionSerialStrategy<TModel>();
-    return this.insertMany(items, writeStrategy, options);
+    try (var writeStrategy = new WriteExecutionSerialStrategy<TModel>()) {
+      return this.insertMany(items, writeStrategy, options);
+    }
   }
 
   public BongoInsertManyResult insertMany(

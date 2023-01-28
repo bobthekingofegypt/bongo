@@ -5,7 +5,7 @@ import java.util.List;
 import org.bobstuff.bongo.exception.BongoException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class BongoCursor<TModel> implements Iterator<TModel> {
+public class BongoCursor<TModel> implements Iterator<TModel>, AutoCloseable {
   private BongoDbBatchCursor<TModel> batchCursor;
   private @Nullable List<TModel> data;
   private int index;
@@ -46,5 +46,9 @@ public class BongoCursor<TModel> implements Iterator<TModel> {
     }
 
     throw new IllegalStateException("iterator exhausted");
+  }
+
+  public void close() {
+    batchCursor.close();
   }
 }

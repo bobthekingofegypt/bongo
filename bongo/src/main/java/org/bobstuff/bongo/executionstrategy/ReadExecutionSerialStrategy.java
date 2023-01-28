@@ -145,4 +145,14 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
       return response.getPayload();
     }
   }
+
+  @Override
+  public void close() {
+    // no-op
+  }
+
+  @Override
+  public boolean isClosed() {
+    return false;
+  }
 }

@@ -62,4 +62,8 @@ public class BongoDbBatchBlockingCursor<TModel> implements BongoDbBatchCursor<TM
 
     throw new IllegalStateException("iterator exhausted");
   }
+
+  public void close() {
+
+  }
 }

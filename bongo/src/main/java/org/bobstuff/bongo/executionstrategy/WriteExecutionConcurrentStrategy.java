@@ -30,6 +30,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   private int writers;
   private int senders;
 
+  private boolean closed;
+
   public WriteExecutionConcurrentStrategy(int writers, int senders) {
     executorService = Executors.newFixedThreadPool(writers + senders);
     writersCompletionService = new ExecutorCompletionService<>(executorService);
@@ -51,6 +53,9 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
       BongoWriteConcern writeConcern) {
+    if (closed) {
+      throw new BongoException("Attempt to use closed WriteExecutionStrategy");
+    }
     // TODO only allow this strategy is ordered is false when number of senders > 1
     var socket = connectionProvider.getReadConnection();
     var requestCompression =
@@ -193,6 +198,14 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   }
 
   public void close() {
-    executorService.shutdown();
+    if (!closed) {
+      executorService.shutdown();
+    }
+    closed = true;
+  }
+
+  @Override
+  public boolean isClosed() {
+    return closed;
   }
 }

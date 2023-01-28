@@ -80,9 +80,7 @@ public class CompanyInsertBenchmark {
 
       this.writeConcurrentStrategy = new WriteExecutionConcurrentStrategy<Company>(3, 1);
       this.writeConcurrentStrategy3 = new WriteExecutionConcurrentStrategy<Company>(3, 5);
-      this.concurrentStrategy =
-          new ReadExecutionConcurrentStrategy<Company>(
-              1);
+      this.concurrentStrategy = new ReadExecutionConcurrentStrategy<Company>(1);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;

@@ -91,4 +91,9 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
   }
 
   public void close() {}
+
+  @Override
+  public boolean isClosed() {
+    return false;
+  }
 }

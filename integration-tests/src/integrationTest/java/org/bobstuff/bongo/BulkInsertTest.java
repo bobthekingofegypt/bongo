@@ -107,10 +107,7 @@ public class BulkInsertTest {
     data.setMongoId(new ObjectId(insertResult.getInsertedIds().get(0)));
     data2.setMongoId(new ObjectId(insertResult.getInsertedIds().get(1)));
 
-    var result =
-        collection
-            .find(new ReadExecutionSerialStrategy<>())
-            .iterator();
+    var result = collection.find(new ReadExecutionSerialStrategy<>()).iterator();
 
     Assertions.assertEquals(data, result.next());
     Assertions.assertEquals(data2, result.next());

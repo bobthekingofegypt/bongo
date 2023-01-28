@@ -61,4 +61,8 @@ public class BongoDbBatchCursorSerial<TModel> implements BongoDbBatchCursor<TMod
       throw new RuntimeException(result.getErrmsg());
     }
   }
+
+  public void close() {
+    
+  }
 }

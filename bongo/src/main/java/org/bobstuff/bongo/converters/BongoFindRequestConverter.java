@@ -1,5 +1,6 @@
 package org.bobstuff.bongo.converters;
 
+import java.nio.charset.StandardCharsets;
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.messages.BongoFindRequest;
@@ -7,8 +8,6 @@ import org.bson.BsonDocument;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
-
-import java.nio.charset.StandardCharsets;
 
 public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequest> {
   private BobBsonConverter<BsonDocument> documentConverter;

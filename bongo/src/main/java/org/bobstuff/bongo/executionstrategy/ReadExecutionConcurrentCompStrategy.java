@@ -30,6 +30,8 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
   private BlockingQueue<BongoFindResponse<TModel>> responses;
   private int parserCount;
 
+  private boolean closed;
+
   public ReadExecutionConcurrentCompStrategy(int parserCount) {
     this.executorService = Executors.newFixedThreadPool(parserCount + 2);
     this.completionService = new ExecutorCompletionService<>(executorService);
@@ -50,6 +52,9 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
+    if (closed) {
+      throw new BongoException("Attempt to use closed ReadExecutionStrategy");
+    }
     var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
     var findResponseConverter =
         new BongoFindResponseConverter<TModel>(codec.converter(model), false);
@@ -208,12 +213,19 @@ public class ReadExecutionConcurrentCompStrategy<TModel> implements ReadExecutio
   }
 
   public void close() {
-    executorService.shutdown();
-    executorService.shutdownNow();
-    try {
-      executorService.awaitTermination(10, TimeUnit.MINUTES);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    if (!closed) {
+      executorService.shutdown();
+      executorService.shutdownNow();
+      try {
+        executorService.awaitTermination(10, TimeUnit.MINUTES);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
+  }
+
+  @Override
+  public boolean isClosed() {
+    return closed;
   }
 }

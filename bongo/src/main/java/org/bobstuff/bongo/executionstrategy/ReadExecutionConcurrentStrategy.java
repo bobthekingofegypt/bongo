@@ -8,6 +8,7 @@ import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
+import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.bobstuff.bongo.messages.BongoGetMoreRequest;
@@ -23,6 +24,8 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   private BlockingQueue<BobBsonBuffer> decodeQueue;
   private BlockingQueue<BongoFindResponse<TModel>> responses;
   private int parserCount;
+
+  private boolean closed;
 
   public ReadExecutionConcurrentStrategy(int parserCount) {
     this.executorService = Executors.newFixedThreadPool(parserCount + 2);
@@ -44,6 +47,9 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
+    if (closed) {
+      throw new BongoException("Attempt to use closed ReadExecutionStrategy");
+    }
     var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
     var findResponseConverter =
         new BongoFindResponseConverter<TModel>(codec.converter(model), false);
@@ -104,10 +110,13 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     final Future<Void> fetcher =
         executorService.submit(
             () -> {
+              if (response.getPayload().getId() == 0) {
+                return null;
+              }
               DynamicBobBsonBuffer getMoreMessage = null;
               BongoFindResponse<TModel> result = null;
               do {
-                if (cursorType != BongoCursorType.Exhaustible || result == null) {
+                if ((cursorType != BongoCursorType.Exhaustible || result == null)) {
                   log.debug("sending fetch more request");
                   var getMoreRequest =
                       new BongoGetMoreRequest(
@@ -183,6 +192,14 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   }
 
   public void close() {
-    executorService.shutdown();
+    if (!closed) {
+      executorService.shutdown();
+    }
+    closed = true;
+  }
+
+  @Override
+  public boolean isClosed() {
+    return closed;
   }
 }

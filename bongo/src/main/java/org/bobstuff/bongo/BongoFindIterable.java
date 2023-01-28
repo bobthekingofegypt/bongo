@@ -1,13 +1,12 @@
 package org.bobstuff.bongo;
 
+import java.util.List;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.List;
 
 public class BongoFindIterable<TModel> {
   private BongoCollection.Identifier identifier;

@@ -7,7 +7,7 @@ import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public interface WriteExecutionStrategy<TModel> {
+public interface WriteExecutionStrategy<TModel> extends AutoCloseable {
   BongoInsertManyResult execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
@@ -19,6 +19,8 @@ public interface WriteExecutionStrategy<TModel> {
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
       BongoWriteConcern writeConcern);
+
+  boolean isClosed();
 
   void close();
 }

@@ -68,11 +68,8 @@ public class BasicFindThreadedBenchmark {
       var database = bongo.getDatabase("test_data");
       var collection = database.getCollection("people", Person.class);
 
-      this.serialStrategy =
-          new ReadExecutionSerialStrategy<>();
-      this.concurrentStrategy =
-          new ReadExecutionConcurrentStrategy<Person>(
-              1);
+      this.serialStrategy = new ReadExecutionSerialStrategy<>();
+      this.concurrentStrategy = new ReadExecutionConcurrentStrategy<Person>(1);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;

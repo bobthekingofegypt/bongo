@@ -1,4 +1,4 @@
-package org.bobstuff.bongo.finds;
+package org.bobstuff.bongo.strategies;
 
 import de.flapdoodle.embed.mongo.commands.ServerAddress;
 import java.util.ArrayList;
@@ -11,6 +11,8 @@ import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
+import org.bobstuff.bongo.exception.BongoException;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
@@ -22,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(MongoDbResolver.class)
-public class FindIntoTest {
+public class ReadExecutionClose {
   private BongoClient bongo;
   private BongoSettings settings;
   private Faker faker;
@@ -69,13 +71,39 @@ public class FindIntoTest {
   }
 
   @Test
-  public void testFindInto(@MongoUrl ServerAddress mongoUrl) {
+  public void testAutocloseStrategy(@MongoUrl ServerAddress mongoUrl) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
+    var strategy = new ReadExecutionConcurrentStrategy<>(1);
+    try (strategy) {
+      collection.find(strategy).into(new ArrayList<>());
+    }
 
-    var result = collection.find(new ReadExecutionSerialStrategy()).into(new ArrayList<>());
+    Assertions.assertTrue(strategy.isClosed());
+  }
 
-    Assertions.assertNotNull(result);
-    Assertions.assertEquals(3, result.size());
+  @Test
+  public void testClosedStrategyThrowsException(@MongoUrl ServerAddress mongoUrl) {
+    var database = bongo.getDatabase("inttest");
+    var collection = database.getCollection("companies", Company.class);
+    var strategy = new ReadExecutionConcurrentStrategy<>(1);
+    try (strategy) {
+      collection.find(strategy).into(new ArrayList<>());
+    }
+
+    Assertions.assertThrows(
+        BongoException.class, () -> collection.find(strategy).into(new ArrayList<>()));
+  }
+
+  @Test
+  public void testClosedSerialStrategyDoesntThrowsException(@MongoUrl ServerAddress mongoUrl) {
+    var database = bongo.getDatabase("inttest");
+    var collection = database.getCollection("companies", Company.class);
+    var strategy = new ReadExecutionSerialStrategy<Company>();
+    try (strategy) {
+      collection.find(strategy).into(new ArrayList<>());
+    }
+
+    collection.find(strategy).into(new ArrayList<>());
   }
 }

@@ -8,7 +8,6 @@ import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
-import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.exception.BongoBulkWriteException;
@@ -28,13 +27,13 @@ public class Insert {
             .connectionSettings(
                 BongoConnectionSettings.builder()
                     .compressor(new BongoCompressorZstd())
-                    .host("192.168.1.138:27017")
-                    .credentials(
-                        BongoCredentials.builder()
-                            .username("admin")
-                            .password("speal")
-                            .authSource("admin")
-                            .build())
+                    .host("192.168.1.138:27027")
+                    //                    .credentials(
+                    //                        BongoCredentials.builder()
+                    //                            .username("admin")
+                    //                            .password("speal")
+                    //                            .authSource("admin")
+                    //                            .build())
                     .build())
             .bufferPool(new BobBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())

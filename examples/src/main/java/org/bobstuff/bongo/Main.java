@@ -7,8 +7,8 @@ import org.bobstuff.bobbson.buffer.BobBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
-import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentCompStrategy;
-import org.bobstuff.bongo.models.Person;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
+import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
 
@@ -40,24 +40,24 @@ public class Main {
     bongo.connect();
 
     var database = bongo.getDatabase("test_data");
-    var collection = database.getCollection("people4", Person.class);
+    var collection = database.getCollection("companies", Company.class);
 
     //        var strategy =
     //            new
-    // ReadExecutionSerialStrategy<Person>(settings.getCodec().converter(Person.class));
+    var strategy = new ReadExecutionSerialStrategy<Company>();
 
     for (var x = 0; x < 4; x += 1) {
       System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++");
-      var strategy =
-          new ReadExecutionConcurrentCompStrategy<Person>(
-              settings.getCodec().converter(Person.class), 5);
+      //      var strategy =
+      //          new ReadExecutionConcurrentCompStrategy<Person>(
+      //              5);
       var iter =
           collection
               .find(strategy)
               .options(BongoFindOptions.builder().build())
               .compress(true)
               .cursorType(BongoCursorType.Exhaustible)
-              .cursor();
+              .iterator();
 
       Stopwatch stopwatch = Stopwatch.createStarted();
       int i = 0;
@@ -68,7 +68,7 @@ public class Main {
 
       System.out.println(i);
       System.out.println(stopwatch.elapsed(TimeUnit.MILLISECONDS));
-      strategy.close();
+      //      strategy.close();
     }
     //    try {
     //      Thread.sleep(50000);

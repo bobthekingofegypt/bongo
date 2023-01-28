@@ -7,8 +7,8 @@ import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public interface ReadExecutionStrategy<TModel> {
-  public BongoDbBatchCursor<TModel> execute(
+public interface ReadExecutionStrategy<TModel> extends AutoCloseable {
+  BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
       @Nullable BongoFindOptions findOptions,
@@ -19,4 +19,6 @@ public interface ReadExecutionStrategy<TModel> {
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider);
+
+  boolean isClosed();
 }
