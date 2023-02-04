@@ -8,12 +8,13 @@ import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentFetchers;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
 
-public class Main {
+public class MultiFind {
   public static void main(String... args) {
     var bobBson = new BobBson();
     BsonValueConverters.register(bobBson);
@@ -43,13 +44,13 @@ public class Main {
     var database = bongo.getDatabase("test_data");
     var collection = database.getCollection("companies", Company.class);
 
-    //        var strategy =
-    //            new
-
     for (var x = 0; x < 1; x += 1) {
       System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++");
-      var strategy = new ReadExecutionConcurrentStrategy(5, 50);
-      //      var strategy = new ReadExecutionSerialStrategy();
+      var strategy =
+          new ReadExecutionConcurrentFetchers<Company>(
+              3, () -> new ReadExecutionConcurrentStrategy<>(3));
+      //      var strategy = new ReadExecutionConcurrentFetchers<Company>(3);
+      Stopwatch stopwatch = Stopwatch.createStarted();
       var iter =
           collection
               .find(strategy)
@@ -58,7 +59,6 @@ public class Main {
               .cursorType(BongoCursorType.Exhaustible)
               .iterator();
 
-      Stopwatch stopwatch = Stopwatch.createStarted();
       int i = 0;
       while (iter.hasNext()) {
         iter.next();

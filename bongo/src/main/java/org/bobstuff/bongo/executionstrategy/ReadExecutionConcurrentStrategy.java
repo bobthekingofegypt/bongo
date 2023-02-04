@@ -135,66 +135,68 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
                 codec.converter(BongoGetMoreRequest.class),
                 decodeQueue));
 
-    Future<Void> monitor = monitorExecutionService.submit(
-        () -> {
-          while (true) {
-            try {
-              fetcher.get(100, TimeUnit.MILLISECONDS);
-              break;
-            } catch (TimeoutException e) {
-              log.trace(
-                  "Timeout waiting for fetcher to complete proceeding to check parser threads");
-            } catch (InterruptedException e) {
-              return null;
-            } catch (Throwable e) {
-              abort(e);
-              throw e;
-            }
+    Future<Void> monitor =
+        monitorExecutionService.submit(
+            () -> {
+              while (true) {
+                try {
+                  fetcher.get(100, TimeUnit.MILLISECONDS);
+                  break;
+                } catch (TimeoutException e) {
+                  log.trace(
+                      "Timeout waiting for fetcher to complete proceeding to check parser threads");
+                } catch (InterruptedException e) {
+                  return null;
+                } catch (Throwable e) {
+                  abort(e);
+                  throw e;
+                }
 
-            var result = processingCompletionService.poll();
-            if (result != null) {
-              // any complete processor is a problem at this point so we will abort
-              try {
-                result.get();
-              } catch (Exception e) {
-                abort(e);
-                throw e;
+                var result = processingCompletionService.poll();
+                if (result != null) {
+                  // any complete processor is a problem at this point so we will abort
+                  try {
+                    result.get();
+                  } catch (Exception e) {
+                    abort(e);
+                    throw e;
+                  }
+                }
               }
-            }
-          }
 
-          if (Thread.interrupted()) {
-            return null;
-          }
+              if (Thread.interrupted()) {
+                return null;
+              }
 
-          log.trace(
-              "fetching is complete and no current errors in processing so adding the end response"
-                  + " onto the queue");
-          for (var i = 0; i < parserCount; i += 1) {
-            decodeQueue.put(DecodingCallable.POISON_BUFFER);
-          }
-
-          int completeCount = 0;
-          while (completeCount < parserCount) {
-            try {
-              processingCompletionService.take().get();
-            } catch (InterruptedException e) {
               log.trace(
-                  "interrupted waiting for processing completion, probably due to failed shutdown"
-                      + " process");
-              throw e;
-            } catch (ExecutionException e) {
-              abort(e.getCause());
-              throw e;
-            }
-            completeCount += 1;
-          }
-          log.debug(
-              "parser is complete adding end response onto the queue for batch cursor to pickup");
-          submitResponseQueuePoisonPill();
+                  "fetching is complete and no current errors in processing so adding the end"
+                      + " response onto the queue");
+              for (var i = 0; i < parserCount; i += 1) {
+                decodeQueue.put(DecodingCallable.POISON_BUFFER);
+              }
 
-          return null;
-        });
+              int completeCount = 0;
+              while (completeCount < parserCount) {
+                try {
+                  processingCompletionService.take().get();
+                } catch (InterruptedException e) {
+                  log.trace(
+                      "interrupted waiting for processing completion, probably due to failed"
+                          + " shutdown process");
+                  throw e;
+                } catch (ExecutionException e) {
+                  abort(e.getCause());
+                  throw e;
+                }
+                completeCount += 1;
+              }
+              log.debug(
+                  "parser is complete adding end response onto the queue for batch cursor to"
+                      + " pickup");
+              submitResponseQueuePoisonPill();
+
+              return null;
+            });
 
     this.socket = socket;
     this.cursor = new BongoDbBatchBlockingCursor<>(responses, this);
