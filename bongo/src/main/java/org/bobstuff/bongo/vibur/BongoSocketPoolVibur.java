@@ -44,6 +44,12 @@ public class BongoSocketPoolVibur implements BongoSocketPool {
   }
 
   @Override
+  public void remove(@NonNull BongoSocket socket) {
+    leasedCount.getAndDecrement();
+    pool.restore(socket, false);
+  }
+
+  @Override
   public int getLeasedCount() {
     return leasedCount.get();
   }

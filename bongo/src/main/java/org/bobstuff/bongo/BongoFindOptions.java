@@ -8,4 +8,5 @@ import lombok.Data;
 public class BongoFindOptions {
   private int limit;
   private int skip;
+  private Integer batchSize;
 }

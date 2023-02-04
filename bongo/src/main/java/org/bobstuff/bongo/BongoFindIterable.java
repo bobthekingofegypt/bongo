@@ -62,9 +62,10 @@ public class BongoFindIterable<TModel> {
   }
 
   public List<TModel> into(List<TModel> results) {
-    var iterator = this.iterator();
-    while (iterator.hasNext()) {
-      results.add(iterator.next());
+    try (var iterator = this.iterator()) {
+      while (iterator.hasNext()) {
+        results.add(iterator.next());
+      }
     }
     return results;
   }

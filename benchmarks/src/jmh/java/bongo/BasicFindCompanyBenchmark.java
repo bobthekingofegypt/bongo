@@ -17,7 +17,6 @@ import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
-import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentCompStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.models.company.Company;

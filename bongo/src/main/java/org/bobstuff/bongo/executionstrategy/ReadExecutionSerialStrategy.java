@@ -62,6 +62,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
             requestCompression,
             cursorType,
             wireProtocol,
+            findOptions,
             codec.converter(BongoGetMoreRequest.class),
             findResponseConverter,
             connectionProvider);
@@ -90,6 +91,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
         boolean compress,
         BongoCursorType cursorType,
         WireProtocol wireProtocol,
+        @Nullable BongoFindOptions findOptions,
         BobBsonConverter<BongoGetMoreRequest> requestConverter,
         BobBsonConverter<BongoFindResponse<TModel>> responseConverter,
         BongoConnectionProvider connectionProvider) {
@@ -106,7 +108,8 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
           new BongoGetMoreRequest(
               lastResponse.getPayload().getId(),
               identifier.getDatabaseName(),
-              identifier.getCollectionName());
+              identifier.getCollectionName(),
+              findOptions != null ? findOptions.getBatchSize() : null);
     }
 
     @Override
@@ -143,6 +146,17 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
       }
 
       return response.getPayload();
+    }
+
+    @Override
+    public void abort() {
+      var localSocket = socket;
+      // exhaustible connections that weren't complete must be either consumed or
+      // destroyed, it's easier to just destroy them.
+      if (cursorType == BongoCursorType.Exhaustible && localSocket != null) {
+        localSocket.close();
+        socket = null;
+      }
     }
   }
 

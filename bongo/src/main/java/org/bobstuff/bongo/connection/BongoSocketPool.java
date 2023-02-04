@@ -10,4 +10,6 @@ public interface BongoSocketPool extends BongoSocketPoolMBean {
   BongoSocket get();
 
   void release(@NonNull BongoSocket socket);
+
+  void remove(@NonNull BongoSocket socket);
 }

@@ -34,6 +34,9 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
       if (findOptions.getSkip() > 0) {
         bsonWriter.writeInteger("skip", findOptions.getSkip());
       }
+      if (findOptions.getBatchSize() != null) {
+        bsonWriter.writeInteger("batchSize", findOptions.getBatchSize());
+      }
     }
 
     if (filter != null && filter.size() > 0) {

@@ -123,6 +123,9 @@ public class BongoSocket {
       } catch (IOException e) {
         // noop
       }
+      if (socketPool != null) {
+        socketPool.remove(this);
+      }
     }
   }
 

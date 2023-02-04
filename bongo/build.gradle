@@ -19,6 +19,7 @@ dependencies {
     implementation 'org.mongodb:bson:4.5.0'
 
     testImplementation 'com.google.guava:guava:31.1-jre'
+    testImplementation 'ch.qos.logback:logback-classic:1.4.4'
 }
 
 checkerFramework {
@@ -52,6 +53,7 @@ testing {
             dependencies {
                 implementation project
                 implementation 'com.google.guava:guava:31.1-jre'
+                implementation 'ch.qos.logback:logback-classic:1.4.4'
                 implementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.8.2'
             }
         }

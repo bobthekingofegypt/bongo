@@ -20,5 +20,7 @@ public interface ReadExecutionStrategy<TModel> extends AutoCloseable {
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider);
 
+  void close();
+
   boolean isClosed();
 }
