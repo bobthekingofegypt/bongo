@@ -285,21 +285,6 @@ public class BasicFindBenchmark {
   }
 
   @Benchmark
-  public void bongoDelayDecomp(Blackhole bh, MyBongoClient state) {
-    var strategy = new ReadExecutionConcurrentCompStrategy(3);
-    var iter = state.collection.find(strategy).cursorType(BongoCursorType.Exhaustible).iterator();
-
-    int i = 0;
-    while (iter.hasNext()) {
-      iter.next();
-      i += 1;
-    }
-
-    strategy.close();
-    //    System.out.println(i);
-  }
-
-  @Benchmark
   public void bongoComp(Blackhole bh, MyBongoClient state) {
     var iter =
         state
