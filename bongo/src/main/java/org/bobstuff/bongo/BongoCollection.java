@@ -83,6 +83,21 @@ public class BongoCollection<TModel> {
     return null;
   }
 
+  public long count() {
+    return this.count(BongoFindOptions.builder().build(), new BsonDocument());
+  }
+
+  public long count(BongoFindOptions options, BsonDocument filter) {
+    var executor = new BongoCountExecutor();
+    return executor.execute(
+            identifier,
+            options,
+            filter,
+            wireProtocol,
+            codec,
+            connectionProvider);
+  }
+
   public BongoFindIterable<TModel> find(ReadExecutionStrategy readStrategy) {
     return new BongoFindIterable<>(
         identifier, model, connectionProvider, codec, wireProtocol, bufferPool, readStrategy);

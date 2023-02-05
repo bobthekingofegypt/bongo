@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import lombok.ToString;
 import org.bobstuff.bobbson.*;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.codec.BongoCodec;
@@ -329,6 +330,7 @@ public class WireProtocol {
     return buffer;
   }
 
+  @ToString
   public static class Response<T> {
     private BongoResponseHeader header;
     private int flagBits;
