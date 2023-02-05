@@ -36,27 +36,20 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
   public BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
-      @Nullable BongoFindOptions findOptions,
-      @Nullable BsonDocument filter,
+      BongoFindOptions findOptions,
+      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
-    var skip = 0;
-    var limit = 0;
-    if (findOptions != null) {
-      limit = findOptions.getLimit();
-      skip = findOptions.getSkip();
-    } else {
-      throw new BongoException("find options cannot be null");
-    }
+    var skip = findOptions.getLimit();
+    var limit = findOptions.getSkip();
 
     if (limit == 0) {
-      // we need to do a count query to get the number of results
-      // TODO we need access to collection instance here
-      throw new UnsupportedOperationException("Only supporting calls with a limit clause for now");
+      var countExecutor = new BongoCountExecutor();
+      limit = (int) countExecutor.execute(identifier, findOptions, filter, wireProtocol, codec, connectionProvider);
     }
 
     var batchSize = limit / (fetchers);

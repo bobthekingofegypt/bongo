@@ -72,12 +72,14 @@ public class BongoFindIterable<TModel> {
 
   public BongoCursor<TModel> iterator() {
     // execute first call, pass results to cursor so it can issue subsequent requests
+    var fo = findOptions != null ? findOptions : BongoFindOptions.builder().build();
+    var f = filter != null ? filter : new BsonDocument();
     return new BongoCursor<TModel>(
         readExecutionStrategy.execute(
             identifier,
             model,
-            findOptions,
-            filter,
+            fo,
+            f,
             compress,
             cursorType,
             wireProtocol,

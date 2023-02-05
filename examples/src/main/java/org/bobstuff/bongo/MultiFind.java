@@ -54,8 +54,8 @@ public class MultiFind {
       var iter =
           collection
               .find(strategy)
-              .options(BongoFindOptions.builder().limit(1000000).build())
-              .compress(true)
+              .options(BongoFindOptions.builder().build())
+              .compress(false)
               .cursorType(BongoCursorType.Exhaustible)
               .iterator();
 
@@ -70,20 +70,8 @@ public class MultiFind {
 
       System.out.println(i);
       System.out.println(stopwatch.elapsed(TimeUnit.MILLISECONDS));
-      //      strategy.close();
     }
-    //    try {
-    //      Thread.sleep(50000);
-    //    } catch (InterruptedException e) {
-    //      throw new RuntimeException(e);
-    //    }
-    //
+
     bongo.close();
-    //
-    //    try {
-    //      Thread.sleep(10000);
-    //    } catch (InterruptedException e) {
-    //      throw new RuntimeException(e);
-    //    }
   }
 }

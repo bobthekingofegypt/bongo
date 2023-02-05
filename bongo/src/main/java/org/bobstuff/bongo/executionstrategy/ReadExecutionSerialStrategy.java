@@ -20,8 +20,8 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
   public BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
-      @Nullable BongoFindOptions findOptions,
-      @Nullable BsonDocument filter,
+      BongoFindOptions findOptions,
+      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,

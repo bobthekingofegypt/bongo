@@ -55,8 +55,8 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   public BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
       Class<TModel> model,
-      @Nullable BongoFindOptions findOptions,
-      @Nullable BsonDocument filter,
+      BongoFindOptions findOptions,
+      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
