@@ -89,13 +89,12 @@ public class BongoCollection<TModel> {
 
   public long count(BongoFindOptions options, BsonDocument filter) {
     var executor = new BongoCountExecutor();
-    return executor.execute(
-            identifier,
-            options,
-            filter,
-            wireProtocol,
-            codec,
-            connectionProvider);
+    return executor.execute(identifier, options, filter, wireProtocol, codec, connectionProvider);
+  }
+
+  public BongoAggregateIterable<TModel> aggregate(List<BsonDocument> pipeline) {
+    return new BongoAggregateIterable<>(
+        identifier, pipeline, model, connectionProvider, codec, wireProtocol, bufferPool);
   }
 
   public BongoFindIterable<TModel> find(ReadExecutionStrategy readStrategy) {

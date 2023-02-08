@@ -6,7 +6,6 @@ import java.util.concurrent.*;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
-import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +48,10 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
 
     if (limit == 0) {
       var countExecutor = new BongoCountExecutor();
-      limit = (int) countExecutor.execute(identifier, findOptions, filter, wireProtocol, codec, connectionProvider);
+      limit =
+          (int)
+              countExecutor.execute(
+                  identifier, findOptions, filter, wireProtocol, codec, connectionProvider);
     }
 
     var batchSize = limit / (fetchers);

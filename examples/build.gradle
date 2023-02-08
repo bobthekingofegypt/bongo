@@ -12,6 +12,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.4.4'
     implementation('org.bobstuff.bobbson:mongodb:1.0')
     implementation 'org.mongodb:bson:4.5.0'
+    implementation 'org.mongodb:mongodb-driver-core:4.5.0'
     implementation 'org.checkerframework:checker-qual:3.28.0'
     implementation 'com.google.guava:guava:31.1-jre'
     implementation 'io.airlift:aircompressor:0.21'
