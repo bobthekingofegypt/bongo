@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AllArgsConstructor
 public class BongoFindRequest {
   private BongoCollection.Identifier identifier;
-  private @Nullable BongoFindOptions findOptions;
+  private BongoFindOptions findOptions;
   private @Nullable BsonDocument filter;
+  private @Nullable Integer batchSize;
 }

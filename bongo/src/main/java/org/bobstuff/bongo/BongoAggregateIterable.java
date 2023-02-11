@@ -1,6 +1,8 @@
 package org.bobstuff.bongo;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.BongoCollection.Identifier;
 import org.bobstuff.bongo.codec.BongoCodec;
@@ -19,7 +21,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class BongoAggregateIterable<TModel> {
   private final Identifier identifier;
   private final Class<TModel> model;
-  private int batchSize;
+  private @Nullable Integer batchSize;
+
+  private long maxTimeMS;
   private @Nullable Boolean compress;
   private BongoCursorType cursorType = BongoCursorType.Default;
   private final BongoConnectionProvider connectionProvider;
@@ -50,7 +54,7 @@ public class BongoAggregateIterable<TModel> {
     this.batchSize = 0;
   }
 
-  public BongoAggregateIterable<TModel> batchSize(int batchSize) {
+  public BongoAggregateIterable<TModel> batchSize(@Nullable Integer batchSize) {
     this.batchSize = batchSize;
     return this;
   }
@@ -62,6 +66,11 @@ public class BongoAggregateIterable<TModel> {
 
   public BongoAggregateIterable<TModel> cursorType(BongoCursorType cursorType) {
     this.cursorType = cursorType;
+    return this;
+  }
+
+  public BongoAggregateIterable<TModel> maxTime(final long maxTime, final TimeUnit timeUnit) {
+    this.maxTimeMS = TimeUnit.MILLISECONDS.convert(maxTime, timeUnit);
     return this;
   }
 
@@ -77,27 +86,27 @@ public class BongoAggregateIterable<TModel> {
   public void toCollection() {
     var outputIdentifier = getOutIdentifier(pipeline);
     if (outputIdentifier == null) {
-      throw new BongoException("toCollection can only be run when the last stage of the aggregation is $out or $merge");
+      throw new BongoException(
+          "toCollection can only be run when the last stage of the aggregation is $out or $merge");
     }
 
-    var fo = BongoFindOptions.builder().batchSize(batchSize).build();
     var aggregateRequestConverter =
-            new BongoAggregateRequestConverter(codec.converter(BsonDocument.class));
-    var request = new BongoAggregateRequest(identifier, pipeline);
+        new BongoAggregateRequestConverter(codec.converter(BsonDocument.class));
+    var request = new BongoAggregateRequest(identifier, pipeline, batchSize, maxTimeMS);
     try (var cursor =
-       new BongoCursor<>(
-               readExecutionStrategy.execute(
-                       identifier,
-                       aggregateRequestConverter,
-                       request,
-                       model,
-                       fo,
-                       compress,
-                       cursorType,
-                       wireProtocol,
-                       codec,
-                       bufferPool,
-                       connectionProvider))) {
+        new BongoCursor<>(
+            readExecutionStrategy.execute(
+                identifier,
+                aggregateRequestConverter,
+                request,
+                model,
+                batchSize,
+                compress,
+                cursorType,
+                wireProtocol,
+                codec,
+                bufferPool,
+                connectionProvider))) {
       while (cursor.hasNext()) {
         cursor.next();
       }
@@ -105,12 +114,11 @@ public class BongoAggregateIterable<TModel> {
   }
 
   public BongoCursor<TModel> iterator() {
-    var fo = BongoFindOptions.builder().batchSize(batchSize).build();
     var aggregateRequestConverter =
         new BongoAggregateRequestConverter(codec.converter(BsonDocument.class));
     var outputIdentifier = getOutIdentifier(pipeline);
 
-    var request = new BongoAggregateRequest(identifier, pipeline);
+    var request = new BongoAggregateRequest(identifier, pipeline, batchSize, maxTimeMS);
     if (outputIdentifier == null) {
 
       return new BongoCursor<>(
@@ -119,7 +127,7 @@ public class BongoAggregateIterable<TModel> {
               aggregateRequestConverter,
               request,
               model,
-              fo,
+              batchSize,
               compress,
               cursorType,
               wireProtocol,
@@ -135,7 +143,7 @@ public class BongoAggregateIterable<TModel> {
                       aggregateRequestConverter,
                       request,
                       model,
-                      fo,
+                      batchSize,
                       compress,
                       cursorType,
                       wireProtocol,
@@ -148,7 +156,8 @@ public class BongoAggregateIterable<TModel> {
       }
 
       var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
-      var findRequest = new BongoFindRequest(outputIdentifier, fo, new BsonDocument());
+      var fo = BongoFindOptions.builder().build();
+      var findRequest = new BongoFindRequest(outputIdentifier, fo, new BsonDocument(), batchSize);
 
       return new BongoCursor<>(
           readExecutionStrategy.execute(
@@ -156,7 +165,7 @@ public class BongoAggregateIterable<TModel> {
               findRequestConverter,
               findRequest,
               model,
-              fo,
+              batchSize,
               compress,
               cursorType,
               wireProtocol,

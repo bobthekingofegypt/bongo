@@ -40,7 +40,7 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
       BobBsonConverter<RequestModel> requestConverter,
       @NonNull RequestModel bongoRequest,
       Class<TModel> model,
-      BongoFindOptions findOptions,
+      @Nullable Integer batchSize,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
@@ -49,12 +49,12 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
       BongoConnectionProvider connectionProvider) {
     if (!(bongoRequest instanceof BongoFindRequest)) {
       throw new UnsupportedOperationException(
-          "Mutliple fetchers strategy is currently only compatible with find requests");
+          "Multiple fetchers strategy is currently only compatible with find requests");
     }
 
     var request = (BongoFindRequest) bongoRequest;
-    var skip = findOptions.getLimit();
-    var limit = findOptions.getSkip();
+    var skip = request.getFindOptions().getLimit();
+    var limit = request.getFindOptions().getSkip();
 
     if (limit == 0) {
       var filter = request.getFilter();
@@ -65,18 +65,23 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
       limit =
           (int)
               countExecutor.execute(
-                  identifier, findOptions, filter, wireProtocol, codec, connectionProvider);
+                  identifier,
+                  request.getFindOptions(),
+                  filter,
+                  wireProtocol,
+                  codec,
+                  connectionProvider);
     }
 
-    var batchSize = limit / (fetchers);
+    var individualBatchSize = limit / (fetchers);
 
     for (var i = 0; i < fetchers; i += 1) {
-      final var offset = skip + (i * batchSize);
-      final var limitedBatchSize = i == fetchers - 1 ? limit - offset : batchSize;
+      final var offset = skip + (i * individualBatchSize);
+      final var limitedBatchSize = i == fetchers - 1 ? limit - offset : individualBatchSize;
       fetchersCompletionService.submit(
           () -> {
             var results = new ArrayList<TModel>();
-            var fo = findOptions.withLimit(limitedBatchSize).withSkip(offset);
+            var fo = request.getFindOptions().withLimit(limitedBatchSize).withSkip(offset);
             @SuppressWarnings("unchecked")
             RequestModel filteredRequest = (RequestModel) request.withFindOptions(fo);
             if (filteredRequest == null) {
@@ -90,7 +95,7 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
                       requestConverter,
                       filteredRequest,
                       model,
-                      fo,
+                      batchSize,
                       compress,
                       cursorType,
                       wireProtocol,
@@ -125,7 +130,7 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
   }
 
   @Override
-  public void close() {
+  public void close(boolean aborted) {
     fetchersExecutorService.shutdownNow();
   }
 

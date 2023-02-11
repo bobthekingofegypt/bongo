@@ -14,7 +14,7 @@ public interface ReadExecutionStrategy<TModel> extends AutoCloseable {
       BobBsonConverter<RequestModel> requestConverter,
       @NonNull RequestModel bongoAggregateRequest,
       Class<TModel> model,
-      BongoFindOptions findOptions,
+      @Nullable Integer batchSize,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
@@ -22,7 +22,10 @@ public interface ReadExecutionStrategy<TModel> extends AutoCloseable {
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider);
 
-  void close();
+  default void close() {
+    close(false);
+  }
+  void close(boolean aborted);
 
   boolean isClosed();
 }

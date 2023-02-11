@@ -43,7 +43,7 @@ public class IteratorAbortTest {
                     .host(mongoUrl.toString())
                     .build())
             .bufferPool(new BobBufferPool())
-            .socketPoolProvider(new BongoSocketPoolProviderVibur(3))
+            .socketPoolProvider(new BongoSocketPoolProviderVibur(1))
             .codec(new BongoCodecBobBson(bobBson))
             .build();
 
@@ -78,7 +78,8 @@ public class IteratorAbortTest {
           collection
               .find(strategy)
               .cursorType(BongoCursorType.Exhaustible)
-              .options(BongoFindOptions.builder().batchSize(2).build())
+              .batchSize(2)
+              .options(BongoFindOptions.builder().build())
               .iterator();
 
       iterator.next();
@@ -96,12 +97,14 @@ public class IteratorAbortTest {
     var collection = database.getCollection("companies", Company.class);
 
     for (var i = 0; i < 10; i += 1) {
+      System.out.println("TESTING");
       var strategy = new ReadExecutionConcurrentStrategy<Company>(1, 1);
       var iterator =
           collection
               .find(strategy)
               .cursorType(BongoCursorType.Exhaustible)
-              .options(BongoFindOptions.builder().batchSize(2).build())
+              .batchSize(2)
+              .options(BongoFindOptions.builder().build())
               .iterator();
 
       iterator.next();

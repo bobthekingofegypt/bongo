@@ -20,7 +20,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
       BobBsonConverter<RequestModel> requestConverter,
       @NonNull RequestModel bongoRequest,
       Class<TModel> model,
-      BongoFindOptions findOptions,
+      @Nullable Integer batchSize,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
@@ -58,7 +58,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
             requestCompression,
             cursorType,
             wireProtocol,
-            findOptions,
+            batchSize,
             codec.converter(BongoGetMoreRequest.class),
             findResponseConverter,
             connectionProvider);
@@ -87,7 +87,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
         boolean compress,
         BongoCursorType cursorType,
         WireProtocol wireProtocol,
-        @Nullable BongoFindOptions findOptions,
+        @Nullable Integer batchSize,
         BobBsonConverter<BongoGetMoreRequest> requestConverter,
         BobBsonConverter<BongoFindResponse<TModel>> responseConverter,
         BongoConnectionProvider connectionProvider) {
@@ -105,7 +105,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
               lastResponse.getPayload().getId(),
               identifier.getDatabaseName(),
               identifier.getCollectionName(),
-              findOptions != null ? findOptions.getBatchSize() : null);
+              batchSize);
     }
 
     @Override
@@ -157,7 +157,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
   }
 
   @Override
-  public void close() {
+  public void close(boolean aborted) {
     // no-op
   }
 

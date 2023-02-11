@@ -11,7 +11,7 @@ public class BongoDbBatchCursorSerial<TModel> implements BongoDbBatchCursor<TMod
   private @Nullable List<TModel> batch;
 
   private Class<TModel> model;
-  private BongoDbBatchCursorGetMore<TModel> getMoreExecutor;
+  private @Nullable BongoDbBatchCursorGetMore<TModel> getMoreExecutor;
 
   private boolean complete;
 
@@ -56,6 +56,9 @@ public class BongoDbBatchCursorSerial<TModel> implements BongoDbBatchCursor<TMod
   }
 
   private void getMore() {
+    if (getMoreExecutor == null) {
+      throw new IllegalStateException("GetMoreExecutor should never be null well iterating");
+    }
     var result = getMoreExecutor.getMore();
     if (result == null) {
       complete = true;
@@ -71,7 +74,10 @@ public class BongoDbBatchCursorSerial<TModel> implements BongoDbBatchCursor<TMod
   public void close() {
     if (!complete && firstResponse.getId() != 0) {
       log.debug("BongoDbBatchCursor closed before iteration was complete, aborting");
-      getMoreExecutor.abort();
+      if (getMoreExecutor != null) {
+        getMoreExecutor.abort();
+        getMoreExecutor = null;
+      }
     }
   }
 }

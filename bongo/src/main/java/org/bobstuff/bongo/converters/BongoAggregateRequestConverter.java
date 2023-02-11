@@ -31,24 +31,16 @@ public class BongoAggregateRequestConverter implements BobBsonConverter<BongoAgg
     }
     bsonWriter.writeEndArray();
 
+    if (value.getMaxTimeMS() > 0) {
+      bsonWriter.writeLong("maxTimeMS", value.getMaxTimeMS());
+    }
     bsonWriter.writeStartDocument("cursor");
+    var batchSize = value.getBatchSize();
+    if (batchSize != null && batchSize > 0) {
+      bsonWriter.writeInteger("batchSize", batchSize);
+    }
     bsonWriter.writeEndDocument();
     bsonWriter.writeBoolean("allowDiskUse", true);
-    //    if (findOptions != null) {
-    //      if (findOptions.getLimit() > 0) {
-    //        bsonWriter.writeInteger("limit", findOptions.getLimit());
-    //      }
-    //      if (findOptions.getSkip() > 0) {
-    //        bsonWriter.writeInteger("skip", findOptions.getSkip());
-    //      }
-    //      if (findOptions.getBatchSize() != null) {
-    //        bsonWriter.writeInteger("batchSize", findOptions.getBatchSize());
-    //      }
-    //    }
-
-    //    if (filter != null && filter.size() > 0) {
-    //      documentConverter.write(bsonWriter, "filter".getBytes(StandardCharsets.UTF_8), filter);
-    //    }
 
     bsonWriter.writeEndDocument();
   }

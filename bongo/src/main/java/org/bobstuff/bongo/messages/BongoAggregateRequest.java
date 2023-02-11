@@ -4,7 +4,6 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bobstuff.bongo.BongoCollection;
-import org.bobstuff.bongo.BongoFindOptions;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -13,4 +12,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class BongoAggregateRequest {
   private BongoCollection.Identifier identifier;
   private List<BsonDocument> pipeline;
+  private @Nullable Integer batchSize;
+  private long maxTimeMS;
 }

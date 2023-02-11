@@ -24,7 +24,7 @@ public class BongoCountExecutor {
         wireProtocol.sendReceiveCommandMessage(
             socket,
             countRequestConverter,
-            new BongoFindRequest(identifier, findOptions, filter),
+            new BongoFindRequest(identifier, findOptions, filter, null),
             codec.converter(BongoCountResponse.class),
             false,
             false);

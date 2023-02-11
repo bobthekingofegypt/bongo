@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bongo.exception.BongoException;
+import org.bobstuff.bongo.exception.BongoReadException;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -57,6 +58,9 @@ public class BongoDbBatchBlockingCursor<TModel> implements BongoDbBatchCursor<TM
       complete = true;
       return false;
     }
+    if (!next.isOk()) {
+      throw new BongoReadException(next.getCode(), next.getErrmsg(), next.getCodeName());
+    }
     if (next.getBatch() == null) {
       throw new BongoException("batch should never be null");
     }
@@ -87,7 +91,7 @@ public class BongoDbBatchBlockingCursor<TModel> implements BongoDbBatchCursor<TM
 
   public void close() {
     if (strategy != null) {
-      strategy.close();
+      strategy.close(!complete);
     }
     strategy = null;
   }

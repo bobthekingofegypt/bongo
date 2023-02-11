@@ -271,10 +271,9 @@ public class AggregationTest {
     var collection = database.getCollection("companies", Company.class);
 
     var pipeline =
-            Arrays.asList(
-                    match(ne("name", entries.get(0).getName())).toBsonDocument(),
-                    Aggregates.out("outcollection")
-                              .toBsonDocument());
+        Arrays.asList(
+            match(ne("name", entries.get(0).getName())).toBsonDocument(),
+            Aggregates.out("outcollection").toBsonDocument());
     try (var strategy = new ReadExecutionSerialStrategy<Company>()) {
       collection.aggregate(pipeline, strategy).toCollection();
     }
@@ -293,10 +292,9 @@ public class AggregationTest {
     var collection = database.getCollection("companies", Company.class);
 
     var pipeline =
-            Arrays.asList(
-                    match(ne("name", entries.get(0).getName())).toBsonDocument(),
-                    Aggregates.merge("outcollection")
-                              .toBsonDocument());
+        Arrays.asList(
+            match(ne("name", entries.get(0).getName())).toBsonDocument(),
+            Aggregates.merge("outcollection").toBsonDocument());
     try (var strategy = new ReadExecutionSerialStrategy<Company>()) {
       collection.aggregate(pipeline, strategy).toCollection();
     }
@@ -314,11 +312,10 @@ public class AggregationTest {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
-    var pipeline =
-            Arrays.asList(
-                    match(ne("name", entries.get(0).getName())).toBsonDocument());
+    var pipeline = Arrays.asList(match(ne("name", entries.get(0).getName())).toBsonDocument());
     try (var strategy = new ReadExecutionSerialStrategy<Company>()) {
-      Assertions.assertThrows(BongoException.class, () -> collection.aggregate(pipeline, strategy).toCollection());
+      Assertions.assertThrows(
+          BongoException.class, () -> collection.aggregate(pipeline, strategy).toCollection());
     }
   }
 }

@@ -55,7 +55,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
       BobBsonConverter<RequestModel> requestConverter,
       @NonNull RequestModel bongoRequest,
       Class<TModel> model,
-      BongoFindOptions findOptions,
+      @Nullable Integer batchSize,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
@@ -119,7 +119,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
             response.getPayload().getId(),
             identifier.getDatabaseName(),
             identifier.getCollectionName(),
-            findOptions != null ? findOptions.getBatchSize() : null);
+            batchSize);
 
     final Future<Void> fetcher =
         processingExecutorService.submit(
@@ -202,6 +202,9 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   }
 
   public void close() {
+    close(false);
+  }
+  public void close(boolean aborted) {
     if (!closed) {
       closed = true;
       this.cursor = null;
@@ -233,12 +236,17 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
       } finally {
         var localSocket = this.socket;
         if (localSocket != null) {
-          if (exhaustible && aborted) {
+          log.trace("Read request local socket is not null, preparing to release or destroy");
+          if (exhaustible && (this.aborted || aborted)) {
+            log.trace("Read request was exhaustible and aborted, destroying the socket as it can't be reused");
             localSocket.close();
           } else {
+            log.trace("Read request local socket is not exhaustible so releasing back to pool");
             localSocket.release();
           }
           this.socket = null;
+        } else {
+          log.trace("Read request local socket was null");
         }
       }
     }

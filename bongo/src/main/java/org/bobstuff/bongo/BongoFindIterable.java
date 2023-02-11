@@ -16,6 +16,7 @@ public class BongoFindIterable<TModel> {
   private @Nullable BongoFindOptions findOptions;
   private @Nullable BsonDocument filter;
 
+  private @Nullable Integer batchSize;
   private @Nullable Boolean compress;
   private BongoCursorType cursorType = BongoCursorType.Default;
   private BongoConnectionProvider connectionProvider;
@@ -58,6 +59,11 @@ public class BongoFindIterable<TModel> {
     return this;
   }
 
+  public BongoFindIterable<TModel> batchSize(@Nullable Integer batchSize) {
+    this.batchSize = batchSize;
+    return this;
+  }
+
   public BongoFindIterable<TModel> cursorType(BongoCursorType cursorType) {
     this.cursorType = cursorType;
     return this;
@@ -77,14 +83,14 @@ public class BongoFindIterable<TModel> {
     var fo = findOptions != null ? findOptions : BongoFindOptions.builder().build();
     var f = filter != null ? filter : new BsonDocument();
     var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
-    var request = new BongoFindRequest(identifier, fo, f);
+    var request = new BongoFindRequest(identifier, fo, f, batchSize);
     return new BongoCursor<TModel>(
         readExecutionStrategy.execute(
             identifier,
             findRequestConverter,
             request,
             model,
-            fo,
+            batchSize,
             compress,
             cursorType,
             wireProtocol,

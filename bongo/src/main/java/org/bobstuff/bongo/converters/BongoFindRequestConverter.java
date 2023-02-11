@@ -27,16 +27,15 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
     bsonWriter.writeString("find", identifier.getCollectionName());
     bsonWriter.writeString("$db", identifier.getDatabaseName());
 
-    if (findOptions != null) {
-      if (findOptions.getLimit() > 0) {
-        bsonWriter.writeInteger("limit", findOptions.getLimit());
-      }
-      if (findOptions.getSkip() > 0) {
-        bsonWriter.writeInteger("skip", findOptions.getSkip());
-      }
-      if (findOptions.getBatchSize() != null) {
-        bsonWriter.writeInteger("batchSize", findOptions.getBatchSize());
-      }
+    if (findOptions.getLimit() > 0) {
+      bsonWriter.writeInteger("limit", findOptions.getLimit());
+    }
+    if (findOptions.getSkip() > 0) {
+      bsonWriter.writeInteger("skip", findOptions.getSkip());
+    }
+    var batchSize = value.getBatchSize();
+    if (batchSize != null && batchSize > 0) {
+      bsonWriter.writeInteger("batchSize", batchSize);
     }
 
     if (filter != null && filter.size() > 0) {
