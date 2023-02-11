@@ -3,7 +3,9 @@ package org.bobstuff.bongo;
 import java.util.List;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
+import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
+import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -74,12 +76,15 @@ public class BongoFindIterable<TModel> {
     // execute first call, pass results to cursor so it can issue subsequent requests
     var fo = findOptions != null ? findOptions : BongoFindOptions.builder().build();
     var f = filter != null ? filter : new BsonDocument();
+    var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
+    var request = new BongoFindRequest(identifier, fo, f);
     return new BongoCursor<TModel>(
         readExecutionStrategy.execute(
             identifier,
+            findRequestConverter,
+            request,
             model,
             fo,
-            f,
             compress,
             cursorType,
             wireProtocol,

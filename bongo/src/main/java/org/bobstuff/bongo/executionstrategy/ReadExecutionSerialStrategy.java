@@ -5,33 +5,29 @@ import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
-import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
-import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.bobstuff.bongo.messages.BongoGetMoreRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bobstuff.bongo.topology.ServerAddress;
-import org.bson.BsonDocument;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrategy<TModel> {
   @Override
-  public BongoDbBatchCursor<TModel> execute(
+  public <RequestModel> BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
+      BobBsonConverter<RequestModel> requestConverter,
+      @NonNull RequestModel bongoRequest,
       Class<TModel> model,
       BongoFindOptions findOptions,
-      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
-    // TODO can we avoid these allocations
-    var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
-    var findResponseConverter =
-        new BongoFindResponseConverter<TModel>(codec.converter(model), false);
+    var findResponseConverter = new BongoFindResponseConverter<>(codec.converter(model), false);
 
     var socket = connectionProvider.getReadConnection();
     var serverAddress = socket.getServerAddress();
@@ -45,8 +41,8 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
     var response =
         wireProtocol.sendReceiveCommandMessage(
             socket,
-            findRequestConverter,
-            new BongoFindRequest(identifier, findOptions, filter),
+            requestConverter,
+            bongoRequest,
             findResponseConverter,
             requestCompression,
             false);
@@ -54,7 +50,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
     socket.release();
 
     var getMore =
-        new ExecuteGetMore<TModel>(
+        new ExecuteGetMore<>(
             socket,
             identifier,
             serverAddress,

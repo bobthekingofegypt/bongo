@@ -20,8 +20,6 @@ public class BongoAggregateRequestConverter implements BobBsonConverter<BongoAgg
       @UnknownKeyFor @NonNull @Initialized BsonWriter bsonWriter,
       @NonNull BongoAggregateRequest value) {
     var identifier = value.getIdentifier();
-    var findOptions = value.getFindOptions();
-    var filter = value.getFilter();
     var pipeline = value.getPipeline();
 
     bsonWriter.writeStartDocument();

@@ -12,7 +12,5 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AllArgsConstructor
 public class BongoAggregateRequest {
   private BongoCollection.Identifier identifier;
-  private @Nullable BongoFindOptions findOptions;
-  private @Nullable BsonDocument filter;
   private List<BsonDocument> pipeline;
 }

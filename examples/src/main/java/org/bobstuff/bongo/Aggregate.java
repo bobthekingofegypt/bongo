@@ -2,7 +2,6 @@ package org.bobstuff.bongo;
 
 import com.google.common.base.Stopwatch;
 import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Filters;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
@@ -11,6 +10,7 @@ import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
@@ -47,12 +47,13 @@ public class Aggregate {
 
     var pipeline =
         Arrays.asList(
-            Aggregates.match(Filters.eq("owner.occupation", "Manufacturing")).toBsonDocument(),
-            Aggregates.limit(100000).toBsonDocument());
+            //            Aggregates.match(Filters.eq("owner.occupation",
+            // "Manufacturing")).toBsonDocument(),
+            Aggregates.limit(1000000).toBsonDocument());
 
     var iter =
         collection
-            .aggregate(pipeline)
+            .aggregate(pipeline, new ReadExecutionSerialStrategy<>())
             //              .options(BongoFindOptions.builder().limit(1000000).build())
             .compress(false)
             .cursorType(BongoCursorType.Exhaustible)

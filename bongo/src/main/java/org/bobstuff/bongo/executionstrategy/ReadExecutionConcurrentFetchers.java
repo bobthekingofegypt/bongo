@@ -3,11 +3,14 @@ package org.bobstuff.bongo.executionstrategy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
+import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 // TODO Implement error handling
@@ -32,21 +35,32 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
   }
 
   @Override
-  public BongoDbBatchCursor<TModel> execute(
+  public <RequestModel> BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
+      BobBsonConverter<RequestModel> requestConverter,
+      @NonNull RequestModel bongoRequest,
       Class<TModel> model,
       BongoFindOptions findOptions,
-      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
       BufferDataPool bufferPool,
       BongoConnectionProvider connectionProvider) {
+    if (!(bongoRequest instanceof BongoFindRequest)) {
+      throw new UnsupportedOperationException(
+          "Mutliple fetchers strategy is currently only compatible with find requests");
+    }
+
+    var request = (BongoFindRequest) bongoRequest;
     var skip = findOptions.getLimit();
     var limit = findOptions.getSkip();
 
     if (limit == 0) {
+      var filter = request.getFilter();
+      if (filter == null) {
+        filter = new BsonDocument();
+      }
       var countExecutor = new BongoCountExecutor();
       limit =
           (int)
@@ -62,13 +76,21 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
       fetchersCompletionService.submit(
           () -> {
             var results = new ArrayList<TModel>();
+            var fo = findOptions.withLimit(limitedBatchSize).withSkip(offset);
+            @SuppressWarnings("unchecked")
+            RequestModel filteredRequest = (RequestModel) request.withFindOptions(fo);
+            if (filteredRequest == null) {
+              throw new IllegalStateException(
+                  "Checker insists that request be non null, I don't see how it could be null");
+            }
             try (var strategy = strategyProvider.provide()) {
               var cursor =
                   strategy.execute(
                       identifier,
+                      requestConverter,
+                      filteredRequest,
                       model,
-                      findOptions.withLimit(limitedBatchSize).withSkip(offset),
-                      filter,
+                      fo,
                       compress,
                       cursorType,
                       wireProtocol,

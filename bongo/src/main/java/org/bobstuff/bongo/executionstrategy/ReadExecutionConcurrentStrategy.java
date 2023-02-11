@@ -9,17 +9,15 @@ import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.compressors.BongoCompressor;
 import org.bobstuff.bongo.connection.BongoSocket;
-import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.exception.BongoReadException;
 import org.bobstuff.bongo.executionstrategy.read.concurrent.DecodingCallable;
 import org.bobstuff.bongo.executionstrategy.read.concurrent.FetcherCallable;
-import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.bobstuff.bongo.messages.BongoGetMoreRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
-import org.bson.BsonDocument;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Slf4j
@@ -52,11 +50,12 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   }
 
   @Override
-  public BongoDbBatchCursor<TModel> execute(
+  public <RequestModel> BongoDbBatchCursor<TModel> execute(
       BongoCollection.Identifier identifier,
+      BobBsonConverter<RequestModel> requestConverter,
+      @NonNull RequestModel bongoRequest,
       Class<TModel> model,
       BongoFindOptions findOptions,
-      BsonDocument filter,
       @Nullable Boolean compress,
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
@@ -69,7 +68,6 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     this.started = true;
 
     var modelConverter = codec.converter(model);
-    var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
     var findResponseConverter = new BongoFindResponseConverter<>(modelConverter, false);
     var findResponseConverterSkipBody = new BongoFindResponseConverter<>(modelConverter, true);
     var socket = connectionProvider.getReadConnection();
@@ -79,8 +77,8 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     var response =
         wireProtocol.sendReceiveCommandMessage(
             socket,
-            findRequestConverter,
-            new BongoFindRequest(identifier, findOptions, filter),
+            requestConverter,
+            bongoRequest,
             findResponseConverter,
             requestCompression,
             false);

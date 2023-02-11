@@ -92,12 +92,35 @@ public class BongoCollection<TModel> {
     return executor.execute(identifier, options, filter, wireProtocol, codec, connectionProvider);
   }
 
-  public BongoAggregateIterable<TModel> aggregate(List<BsonDocument> pipeline) {
+  public BongoAggregateIterable<TModel> aggregate(
+      List<BsonDocument> pipeline, ReadExecutionStrategy<TModel> readStrategy) {
     return new BongoAggregateIterable<>(
-        identifier, pipeline, model, connectionProvider, codec, wireProtocol, bufferPool);
+        identifier,
+        pipeline,
+        model,
+        connectionProvider,
+        codec,
+        wireProtocol,
+        bufferPool,
+        readStrategy);
   }
 
-  public BongoFindIterable<TModel> find(ReadExecutionStrategy readStrategy) {
+  public <OverrideModel> BongoAggregateIterable<OverrideModel> aggregate(
+      List<BsonDocument> pipeline,
+      Class<OverrideModel> overrideModel,
+      ReadExecutionStrategy<OverrideModel> readStrategy) {
+    return new BongoAggregateIterable<>(
+        identifier,
+        pipeline,
+        overrideModel,
+        connectionProvider,
+        codec,
+        wireProtocol,
+        bufferPool,
+        readStrategy);
+  }
+
+  public BongoFindIterable<TModel> find(ReadExecutionStrategy<TModel> readStrategy) {
     return new BongoFindIterable<>(
         identifier, model, connectionProvider, codec, wireProtocol, bufferPool, readStrategy);
   }

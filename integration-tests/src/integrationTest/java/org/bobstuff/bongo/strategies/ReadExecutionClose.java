@@ -74,7 +74,7 @@ public class ReadExecutionClose {
   public void testAutocloseStrategy(@MongoUrl ServerAddress mongoUrl) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
-    var strategy = new ReadExecutionConcurrentStrategy<>(1);
+    var strategy = new ReadExecutionConcurrentStrategy<Company>(1);
     try (strategy) {
       collection.find(strategy).into(new ArrayList<>());
     }
@@ -86,7 +86,7 @@ public class ReadExecutionClose {
   public void testClosedStrategyThrowsException(@MongoUrl ServerAddress mongoUrl) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
-    var strategy = new ReadExecutionConcurrentStrategy<>(1);
+    var strategy = new ReadExecutionConcurrentStrategy<Company>(1);
     try (strategy) {
       collection.find(strategy).into(new ArrayList<>());
     }

@@ -2,39 +2,43 @@ package org.bobstuff.bongo;
 
 import java.util.List;
 import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bongo.BongoCollection.Identifier;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoAggregateRequestConverter;
-import org.bobstuff.bongo.executionstrategy.ReadAggregateExecutionSerialStrategy;
+import org.bobstuff.bongo.converters.BongoFindRequestConverter;
+import org.bobstuff.bongo.exception.BongoException;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
+import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
 import org.bobstuff.bongo.messages.BongoAggregateRequest;
+import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class BongoAggregateIterable<TModel> {
-  private BongoCollection.Identifier identifier;
-  private Class<TModel> model;
-  private @Nullable BongoFindOptions findOptions;
-  private @Nullable BsonDocument filter;
-
+  private final Identifier identifier;
+  private final Class<TModel> model;
+  private int batchSize;
   private @Nullable Boolean compress;
   private BongoCursorType cursorType = BongoCursorType.Default;
-  private BongoConnectionProvider connectionProvider;
-  private BongoCodec codec;
+  private final BongoConnectionProvider connectionProvider;
+  private final BongoCodec codec;
 
-  //  private ReadExecutionStrategy readExecutionStrategy;
-
-  private BufferDataPool bufferPool;
-  private WireProtocol wireProtocol;
-  private List<BsonDocument> pipeline;
+  private final ReadExecutionStrategy<TModel> readExecutionStrategy;
+  private final BufferDataPool bufferPool;
+  private final WireProtocol wireProtocol;
+  private final List<BsonDocument> pipeline;
 
   public BongoAggregateIterable(
-      BongoCollection.Identifier identifier,
+      Identifier identifier,
       List<BsonDocument> pipeline,
       Class<TModel> model,
       BongoConnectionProvider connectionProvider,
       BongoCodec codec,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool) {
+      BufferDataPool bufferPool,
+      ReadExecutionStrategy<TModel> strategy) {
     this.identifier = identifier;
     this.model = model;
     this.codec = codec;
@@ -42,16 +46,12 @@ public class BongoAggregateIterable<TModel> {
     this.wireProtocol = wireProtocol;
     this.bufferPool = bufferPool;
     this.pipeline = pipeline;
-    //    this.readExecutionStrategy = readExecutionStrategy;
+    this.readExecutionStrategy = strategy;
+    this.batchSize = 0;
   }
 
-  public BongoAggregateIterable<TModel> options(BongoFindOptions options) {
-    this.findOptions = options;
-    return this;
-  }
-
-  public BongoAggregateIterable<TModel> filter(BsonDocument filter) {
-    this.filter = filter;
+  public BongoAggregateIterable<TModel> batchSize(int batchSize) {
+    this.batchSize = batchSize;
     return this;
   }
 
@@ -74,27 +74,145 @@ public class BongoAggregateIterable<TModel> {
     return results;
   }
 
+  public void toCollection() {
+    var outputIdentifier = getOutIdentifier(pipeline);
+    if (outputIdentifier == null) {
+      throw new BongoException("toCollection can only be run when the last stage of the aggregation is $out or $merge");
+    }
+
+    var fo = BongoFindOptions.builder().batchSize(batchSize).build();
+    var aggregateRequestConverter =
+            new BongoAggregateRequestConverter(codec.converter(BsonDocument.class));
+    var request = new BongoAggregateRequest(identifier, pipeline);
+    try (var cursor =
+       new BongoCursor<>(
+               readExecutionStrategy.execute(
+                       identifier,
+                       aggregateRequestConverter,
+                       request,
+                       model,
+                       fo,
+                       compress,
+                       cursorType,
+                       wireProtocol,
+                       codec,
+                       bufferPool,
+                       connectionProvider))) {
+      while (cursor.hasNext()) {
+        cursor.next();
+      }
+    }
+  }
+
   public BongoCursor<TModel> iterator() {
-    // execute first call, pass results to cursor so it can issue subsequent requests
-    var fo = findOptions != null ? findOptions : BongoFindOptions.builder().build();
-    var f = filter != null ? filter : new BsonDocument();
+    var fo = BongoFindOptions.builder().batchSize(batchSize).build();
     var aggregateRequestConverter =
         new BongoAggregateRequestConverter(codec.converter(BsonDocument.class));
-    var request = new BongoAggregateRequest(identifier, null, null, pipeline);
-    var executor = new ReadAggregateExecutionSerialStrategy<BongoAggregateRequest, TModel>();
-    return new BongoCursor<TModel>(
-        executor.execute(
-            aggregateRequestConverter,
-            request,
-            identifier,
-            model,
-            fo,
-            f,
-            compress,
-            cursorType,
-            wireProtocol,
-            codec,
-            bufferPool,
-            connectionProvider));
+    var outputIdentifier = getOutIdentifier(pipeline);
+
+    var request = new BongoAggregateRequest(identifier, pipeline);
+    if (outputIdentifier == null) {
+
+      return new BongoCursor<>(
+          readExecutionStrategy.execute(
+              identifier,
+              aggregateRequestConverter,
+              request,
+              model,
+              fo,
+              compress,
+              cursorType,
+              wireProtocol,
+              codec,
+              bufferPool,
+              connectionProvider));
+    } else {
+      try (var singleUseStrategy = new ReadExecutionSerialStrategy<TModel>();
+          var cursor =
+              new BongoCursor<>(
+                  singleUseStrategy.execute(
+                      identifier,
+                      aggregateRequestConverter,
+                      request,
+                      model,
+                      fo,
+                      compress,
+                      cursorType,
+                      wireProtocol,
+                      codec,
+                      bufferPool,
+                      connectionProvider))) {
+        while (cursor.hasNext()) {
+          cursor.next();
+        }
+      }
+
+      var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
+      var findRequest = new BongoFindRequest(outputIdentifier, fo, new BsonDocument());
+
+      return new BongoCursor<>(
+          readExecutionStrategy.execute(
+              outputIdentifier,
+              findRequestConverter,
+              findRequest,
+              model,
+              fo,
+              compress,
+              cursorType,
+              wireProtocol,
+              codec,
+              bufferPool,
+              connectionProvider));
+    }
+  }
+
+  private @Nullable Identifier getOutIdentifier(List<BsonDocument> pipeline) {
+    if (pipeline.size() == 0) {
+      return null;
+    }
+
+    BsonDocument lastPipelineStage = pipeline.get(pipeline.size() - 1);
+    if (lastPipelineStage == null) {
+      return null;
+    }
+    if (lastPipelineStage.containsKey("$out")) {
+      if (lastPipelineStage.get("$out").isString()) {
+        return new Identifier(
+            identifier.getDatabaseName(), lastPipelineStage.getString("$out").getValue());
+      } else if (lastPipelineStage.get("$out").isDocument()) {
+        BsonDocument outDocument = lastPipelineStage.getDocument("$out");
+        if (!outDocument.containsKey("db") || !outDocument.containsKey("coll")) {
+          throw new IllegalStateException(
+              "Cannot return a cursor when the value for $out stage is not a namespace document");
+        }
+        return new Identifier(
+            outDocument.getString("db").getValue(), outDocument.getString("coll").getValue());
+      } else {
+        throw new IllegalStateException(
+            "Cannot return a cursor when the value for $out stage "
+                + "is not a string or namespace document");
+      }
+    } else if (lastPipelineStage.containsKey("$merge")) {
+      if (lastPipelineStage.isString("$merge")) {
+        return new Identifier(
+            identifier.getDatabaseName(), lastPipelineStage.getString("$merge").getValue());
+      } else if (lastPipelineStage.isDocument("$merge")) {
+        BsonDocument mergeDocument = lastPipelineStage.getDocument("$merge");
+        if (mergeDocument.isDocument("into")) {
+          BsonDocument intoDocument = mergeDocument.getDocument("into");
+          return new BongoCollection.Identifier(
+              intoDocument.getString("db", new BsonString(identifier.getDatabaseName())).getValue(),
+              intoDocument.getString("coll").getValue());
+        } else if (mergeDocument.isString("into")) {
+          return new Identifier(
+              identifier.getDatabaseName(), mergeDocument.getString("into").getValue());
+        }
+      } else {
+        throw new IllegalStateException(
+            "Cannot return a cursor when the value for $merge stage is not a string or a document");
+      }
+    }
+
+    return null;
   }
 }

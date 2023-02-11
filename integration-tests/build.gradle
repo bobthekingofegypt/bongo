@@ -28,6 +28,7 @@ testing {
                 implementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.4.0'
                 implementation 'org.bobstuff.bobbson:core:1.0'
                 implementation('org.bobstuff.bobbson:mongodb:1.0')
+                implementation 'org.mongodb:mongodb-driver-core:4.5.0'
                 implementation 'org.mongodb:bson:4.5.0'
                 implementation("net.datafaker:datafaker:1.7.0")
             }
