@@ -1,14 +1,12 @@
 package org.bobstuff.bongo;
 
+import java.util.Collections;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
-import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
-import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
+import org.bobstuff.bongo.executionstrategy.*;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -158,6 +156,51 @@ public class BongoCollection<TModel> {
         items,
         options,
         null,
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol,
+        writeConcern);
+  }
+
+  public void updateOne(BsonDocument filter, List<BsonDocument> update) {
+    var strategy = new WriteUpdateExecutionSerialStrategy<BongoUpdate>();
+    var bongoUpdate = new BongoUpdate(filter, update, false);
+    strategy.execute(
+        identifier,
+        BongoUpdate.class,
+        Collections.singletonList(bongoUpdate),
+        BongoInsertManyOptions.builder().build(),
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol,
+        writeConcern);
+  }
+
+  public void updateMany(BsonDocument filter, List<BsonDocument> update) {
+    var strategy = new WriteUpdateExecutionSerialStrategy<BongoUpdate>();
+    var bongoUpdate = new BongoUpdate(filter, update, true);
+    strategy.execute(
+        identifier,
+        BongoUpdate.class,
+        Collections.singletonList(bongoUpdate),
+        BongoInsertManyOptions.builder().build(),
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol,
+        writeConcern);
+  }
+
+  public void bulkWrite(List<? extends BongoWriteOperation<TModel>> operations) {
+    var strategy = new BulkWriteExecutionSerialStrategy<BongoUpdate>();
+    //    var bongoUpdate = new BongoUpdate(filter, update, true);
+    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<TModel>(operations, model, codec);
+    strategy.execute(
+        identifier,
+        bulkWriteSplitter,
+        BongoInsertManyOptions.builder().compress(false).build(),
         bufferPool,
         codec,
         connectionProvider,

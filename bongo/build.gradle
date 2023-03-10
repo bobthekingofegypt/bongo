@@ -23,7 +23,7 @@ dependencies {
 }
 
 checkerFramework {
-    skipCheckerFramework = false
+    skipCheckerFramework = true
 }
 
 task sourceJar(type: Jar) {

@@ -19,6 +19,7 @@ import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.exception.BongoReadException;
+import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.bobstuff.bongo.messages.BongoGetMoreRequest;
 import org.bobstuff.bongo.messages.BongoResponseHeader;
@@ -104,12 +105,16 @@ public class ReadExecutionConcurrentStrategyTest {
         .thenReturn(getMoreRequest);
     when(wireProtocol.readRawServerResponse(any(), eq(true))).thenReturn(getMoreResponse);
 
+    var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+    var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
     var cursor =
         strategy.execute(
             identifier,
+            requestConverter,
+            bongoRequest,
             Model.class,
-            BongoFindOptions.builder().build(),
-            new BsonDocument(),
+            10,
             false,
             BongoCursorType.Exhaustible,
             wireProtocol,
@@ -157,12 +162,16 @@ public class ReadExecutionConcurrentStrategyTest {
             eq(false)))
         .thenReturn(initialResponse);
 
+    var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+    var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
     var cursor =
         strategy.execute(
             identifier,
+            requestConverter,
+            bongoRequest,
             Model.class,
-            BongoFindOptions.builder().build(),
-            new BsonDocument(),
+            10,
             false,
             BongoCursorType.Exhaustible,
             wireProtocol,
@@ -208,17 +217,22 @@ public class ReadExecutionConcurrentStrategyTest {
     Assertions.assertThrows(
         BongoReadException.class,
         () -> {
-          strategy.execute(
-              identifier,
-              Model.class,
-              BongoFindOptions.builder().build(),
-              new BsonDocument(),
-              false,
-              BongoCursorType.Exhaustible,
-              wireProtocol,
-              codec,
-              bufferPool,
-              connectionProvider);
+          var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+          var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
+                  strategy.execute(
+                          identifier,
+                          requestConverter,
+                          bongoRequest,
+                          Model.class,
+                          10,
+                          false,
+                          BongoCursorType.Exhaustible,
+                          wireProtocol,
+                          codec,
+                          bufferPool,
+                          connectionProvider);
+
         });
 
     Mockito.verify(socket).release();
@@ -248,17 +262,21 @@ public class ReadExecutionConcurrentStrategyTest {
     Assertions.assertThrows(
         BongoException.class,
         () -> {
-          strategy.execute(
-              identifier,
-              Model.class,
-              BongoFindOptions.builder().build(),
-              new BsonDocument(),
-              false,
-              BongoCursorType.Exhaustible,
-              wireProtocol,
-              codec,
-              bufferPool,
-              connectionProvider);
+          var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+          var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
+                  strategy.execute(
+                          identifier,
+                          requestConverter,
+                          bongoRequest,
+                          Model.class,
+                          10,
+                          false,
+                          BongoCursorType.Exhaustible,
+                          wireProtocol,
+                          codec,
+                          bufferPool,
+                          connectionProvider);
         });
   }
 
@@ -323,12 +341,16 @@ public class ReadExecutionConcurrentStrategyTest {
         .thenReturn(getMoreRequest);
     when(wireProtocol.readRawServerResponse(any(), eq(true))).thenReturn(getMoreResponse);
 
+    var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+    var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
     var cursor =
         strategy.execute(
             identifier,
+            requestConverter,
+            bongoRequest,
             Model.class,
-            BongoFindOptions.builder().build(),
-            new BsonDocument(),
+            10,
             false,
             BongoCursorType.Exhaustible,
             wireProtocol,
@@ -400,12 +422,16 @@ public class ReadExecutionConcurrentStrategyTest {
     when(wireProtocol.readRawServerResponse(any(), eq(true)))
         .thenThrow(new BongoException("failing in unit test"));
 
+    var requestConverter = (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
+    var bongoRequest = Mockito.mock(BongoFindRequest.class);
+
     var cursor =
         strategy.execute(
             identifier,
+            requestConverter,
+            bongoRequest,
             Model.class,
-            BongoFindOptions.builder().build(),
-            new BsonDocument(),
+            10,
             false,
             BongoCursorType.Exhaustible,
             wireProtocol,

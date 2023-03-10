@@ -204,6 +204,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
   public void close() {
     close(false);
   }
+
   public void close(boolean aborted) {
     if (!closed) {
       closed = true;
@@ -238,7 +239,9 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
         if (localSocket != null) {
           log.trace("Read request local socket is not null, preparing to release or destroy");
           if (exhaustible && (this.aborted || aborted)) {
-            log.trace("Read request was exhaustible and aborted, destroying the socket as it can't be reused");
+            log.trace(
+                "Read request was exhaustible and aborted, destroying the socket as it can't be"
+                    + " reused");
             localSocket.close();
           } else {
             log.trace("Read request local socket is not exhaustible so releasing back to pool");

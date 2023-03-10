@@ -2,10 +2,15 @@ package org.bobstuff.bongo;
 
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+
 import lombok.ToString;
 import org.bobstuff.bobbson.*;
 import org.bobstuff.bobbson.writer.BsonWriter;
@@ -193,6 +198,36 @@ public class WireProtocol {
     return this.sendCommandMessage(socket, converter, value, compress, stream, null);
   }
 
+  public <T, V> int sendCommandMessageTemp(
+          BongoSocket socket,
+          BobBsonConverter<T> converter,
+          @NonNull T value,
+          boolean compress,
+          boolean stream,
+          @Nullable BongoPayloadTemp payload) {
+    var requestId = socket.getNextRequestId();
+    var buffer =
+            prepareCommandMessageTemp(socket, converter, value, compress, stream, payload, requestId);
+
+    for (var buf : buffer.getBuffers()) {
+      socket.write(buf);
+    }
+
+    var bos = new ByteArrayOutputStream();
+    for (var buf : buffer.getBuffers()) {
+      bos.write(buf.getArray(), buf.getHead(), buf.getTail());
+    }
+    try {
+      Files.write(Path.of("/tmp/bbbbb" + requestId), bos.toByteArray());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    buffer.release();
+
+    return requestId;
+  }
+
   public <T, V> int sendCommandMessage(
       BongoSocket socket,
       BobBsonConverter<T> converter,
@@ -210,6 +245,124 @@ public class WireProtocol {
     buffer.release();
 
     return requestId;
+  }
+
+  public <T, V> DynamicBobBsonBuffer prepareCommandMessageTemp(
+          BongoSocket socket,
+          BobBsonConverter<T> converter,
+          @NonNull T value,
+          boolean compress,
+          boolean stream,
+          @Nullable BongoPayloadTemp payload,
+          int requestId) {
+    var buffer = new DynamicBobBsonBuffer(bufferPool);
+    buffer.skipTail(4);
+    buffer.writeInteger(requestId);
+    buffer.writeInteger(0);
+    buffer.writeInteger(compress ? 2012 : 2013);
+
+    if (compress) {
+      var compressor = socket.getCompressor();
+      if (compressor == null) {
+        throw new BongoException("Compression requested but no compressors are configured");
+      }
+      var contentBuffer = new DynamicBobBsonBuffer(bufferPool);
+
+      var flagBits = 0;
+      if (stream) {
+        flagBits |= 1 << 16;
+      }
+      contentBuffer.writeInteger(flagBits); // flag bits
+      contentBuffer.writeByte((byte) 0);
+
+      var bsonOutput = new BsonWriter(contentBuffer);
+      converter.write(bsonOutput, value);
+
+      if (payload != null) {
+        contentBuffer.writeByte((byte) 1);
+        int position = contentBuffer.getTail();
+        contentBuffer.skipTail(4);
+        contentBuffer.writeString(payload.getIdentifier());
+        contentBuffer.writeByte((byte) 0);
+
+        payload.getItems().write(contentBuffer);
+
+        contentBuffer.writeInteger(position, contentBuffer.getTail() - position);
+      }
+
+      BobBsonBuffer compressedBuffer;
+      if (contentBuffer.getBuffers().size() == 1) {
+        var innerBuffer = contentBuffer.getBuffers().get(0);
+        var innerArray = innerBuffer.getArray();
+        if (innerArray == null) {
+          throw new BongoException("Dynamic buffers inner buffer has inaccessible array");
+        }
+        compressedBuffer =
+                compressor.compress(
+                        innerArray, innerBuffer.getHead(), innerBuffer.getTail(), bufferPool);
+      } else {
+        var outputBuffer = bufferPool.allocate(contentBuffer.getTail());
+        var outputBufferArray = outputBuffer.getArray();
+        if (outputBufferArray == null) {
+          throw new BongoException("Output buffer has inaccessible backing array");
+        }
+        var position = 0;
+        for (var b : contentBuffer.getBuffers()) {
+          var bArray = b.getArray();
+          if (bArray == null) {
+            throw new BongoException("Buffer has inaccessible backing array");
+          }
+          System.arraycopy(
+                  bArray, b.getHead(), outputBufferArray, position, b.getTail() - b.getHead());
+          position += b.getTail() - b.getHead();
+        }
+        compressedBuffer =
+                compressor.compress(outputBufferArray, 0, contentBuffer.getTail(), bufferPool);
+
+        bufferPool.recycle(outputBuffer);
+      }
+
+      buffer.writeInteger(2013);
+      buffer.writeInteger(contentBuffer.getTail()); // uncompressed size
+      buffer.writeByte(compressor.getId());
+
+      var compressedBufferArray = compressedBuffer.getArray();
+      if (compressedBufferArray == null) {
+        throw new BongoException("Compressed buffer has inaccesible array");
+      }
+
+      buffer.writeBytes(
+              compressedBufferArray, compressedBuffer.getHead(), compressedBuffer.getTail());
+      bufferPool.recycle(compressedBuffer);
+
+      contentBuffer.release();
+    } else {
+      var flagBits = 0;
+      if (stream) {
+        flagBits |= 1 << 16;
+      }
+      buffer.writeInteger(flagBits); // flag bits
+      buffer.writeByte((byte) 0);
+
+      var bsonOutput = new BsonWriter(buffer);
+      converter.write(bsonOutput, value);
+
+      if (payload != null) {
+        buffer.writeByte((byte) 1);
+        int position = buffer.getTail();
+        buffer.skipTail(4);
+        buffer.writeString(payload.getIdentifier());
+        buffer.writeByte((byte) 0);
+
+        payload.getItems().write(buffer);
+
+        buffer.writeInteger(position, buffer.getTail() - position);
+      }
+    }
+
+    buffer.writeInteger(0, buffer.getTail());
+
+    return buffer;
   }
 
   public <T, V> DynamicBobBsonBuffer prepareCommandMessage(

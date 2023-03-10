@@ -25,6 +25,7 @@ public interface ReadExecutionStrategy<TModel> extends AutoCloseable {
   default void close() {
     close(false);
   }
+
   void close(boolean aborted);
 
   boolean isClosed();
