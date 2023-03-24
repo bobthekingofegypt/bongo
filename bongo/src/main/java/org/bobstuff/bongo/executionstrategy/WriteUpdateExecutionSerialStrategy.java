@@ -64,7 +64,7 @@ public class WriteUpdateExecutionSerialStrategy<TModel> {
         log.trace(responsePayload.toString());
       }
 
-      tracker.addResponse(responsePayload);
+//      tracker.addResponse(responsePayload);
 
       if (responsePayload.getOk() == 0) {
         System.out.println(responsePayload.getErrmsg());
@@ -82,7 +82,7 @@ public class WriteUpdateExecutionSerialStrategy<TModel> {
     socket.release();
 
     if (writeConcern.isAcknowledged()) {
-      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
+      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds(), tracker);
     }
     return new BongoInsertManyResultUnacknowledged();
   }

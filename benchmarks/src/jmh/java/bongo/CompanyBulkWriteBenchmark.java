@@ -8,12 +8,11 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import com.mongodb.client.model.InsertManyOptions;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
@@ -41,7 +40,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @BenchmarkMode({Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Measurement(iterations = 10, time = 10000, timeUnit = MILLISECONDS)
-public class CompanyInsertBenchmark {
+public class CompanyBulkWriteBenchmark {
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
@@ -226,15 +225,30 @@ public class CompanyInsertBenchmark {
     }
   }
 
-  private List<Company> companies;
+  private List<BongoWriteOperation<Company>> operations;
+  private List<WriteModel<Company>> mongoOperations;
 
   @Setup
   public void setup() {
 
     Faker faker = new Faker(new Random(23));
-    companies = new ArrayList<>();
+
+    operations = new ArrayList<>();
+    mongoOperations = new ArrayList<>();
     for (var i = 0; i < 100000; i += 1) {
-      companies.add(CompanyDataGenerator.company(faker));
+      var company = CompanyDataGenerator.company(faker);
+      operations.add(new BongoInsert<>(company));
+      mongoOperations.add(new InsertOneModel<>(company));
+      if (i % 4 == 0) {
+        operations.add(
+            new BongoUpdate<>(
+                Filters.eq("_id", new ObjectId()).toBsonDocument(),
+                List.of(Updates.set("nothing", "happening").toBsonDocument()),
+                false));
+        mongoOperations.add(
+            new UpdateOneModel<Company>(
+                Filters.eq("_id", new ObjectId()), List.of(Updates.set("nothing", "happening"))));
+      }
     }
   }
 
@@ -328,77 +342,63 @@ public class CompanyInsertBenchmark {
   //    state.collection.insertMany(people, state.writeConcurrentStrategy, true);
   //  }
 
-    @Benchmark
-    public void mongo(Blackhole bh, MyMongoClient state) {
-      state.mongoCollection.insertMany(companies, new InsertManyOptions().ordered(false));
-    }
-  //
-  //  @Benchmark
-  //  public void mongoUnorderedNoack(Blackhole bh, MyMongoClient state) {
-  //    state
-  //        .mongoCollection
-  //        .withWriteConcern(WriteConcern.UNACKNOWLEDGED)
-  //        .insertMany(companies, new InsertManyOptions().ordered(false));
-  //  }
-  //
-  //  @Benchmark
-  //  public void mongoCompUnorderedNoack(Blackhole bh, MyMongoClientComp state) {
-  //    state
-  //            .mongoCollection
-  //            .withWriteConcern(WriteConcern.UNACKNOWLEDGED)
-  //            .insertMany(companies, new InsertManyOptions().ordered(false));
-  //  }
+  @Benchmark
+  public void mongo(Blackhole bh, MyMongoClient state) {
+    state.mongoCollection.bulkWrite(mongoOperations, new BulkWriteOptions().ordered(true));
+  }
+
+  @Benchmark
+  public void mongoUnordered(Blackhole bh, MyMongoClient state) {
+    state.mongoCollection.bulkWrite(mongoOperations, new BulkWriteOptions().ordered(false));
+  }
+
   @Benchmark
   public void bongoM(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     var strategy = new WriteExecutionSerialStrategy<Company>();
-    state.collection.insertMany(
-        companies,
-        strategy,
-        BongoInsertManyOptions.builder().compress(false).ordered(false).build());
+    state.collection.bulkWrite(
+        operations,
+        BongoInsertManyOptions.builder().compress(false).ordered(true).build(),
+        strategy);
     strategy.close();
   }
-  //  @Benchmark
-  //  public void bongo(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(1,1);
-  //    state.collection.insertMany(
-  //        companies,
-  //        strategy,
-  //        BongoInsertManyOptions.builder().compress(false).ordered(false).build());
-  //    strategy.close();
-  //  }
 
-  //  @Benchmark
-  //  public void bongo6(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(6,6);
-  //    state.collection.insertMany(
-  //            companies,
-  //            strategy,
-  //            BongoInsertManyOptions.builder().compress(false).ordered(false).build());
-  //    strategy.close();
-  //  }
+  @Benchmark
+  public void bongoMUnordered(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var strategy = new WriteExecutionSerialStrategy<Company>();
+    state.collection.bulkWrite(
+        operations,
+        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        strategy);
+    strategy.close();
+  }
 
-//  @Benchmark
-//  public void bongo61(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-//    var strategy = new WriteExecutionConcurrentStrategy<Company>(6, 1);
-//    state.collection.insertMany(
-//        companies,
-//        strategy,
-//        BongoInsertManyOptions.builder().compress(true).ordered(false).build());
-//    strategy.close();
-//  }
-  //
-  //  @Benchmark
-  //  public void bongo16(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(1,6);
-  //    state.collection.insertMany(
-  //            companies,
-  //            strategy,
-  //            BongoInsertManyOptions.builder().compress(false).ordered(false).build());
-  //    strategy.close();
-  //  }
+  @Benchmark
+  public void bongo(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
+    state.collection.bulkWrite(
+        operations,
+        BongoInsertManyOptions.builder().compress(false).ordered(true).build(),
+        strategy);
+    strategy.close();
+  }
 
-  //  @Benchmark
-  //  public void mongoCompression(Blackhole bh, MyMongoClientCompression state) {
-  //    state.mongoCollection.insertMany(people);
-  //  }
+  @Benchmark
+  public void bongoUnordered(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
+    state.collection.bulkWrite(
+        operations,
+        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        strategy);
+    strategy.close();
+  }
+
+  @Benchmark
+  public void bongoUnorderedConcurrent(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+    var strategy = new WriteExecutionConcurrentStrategy<Company>(6, 6);
+    state.collection.bulkWrite(
+        operations,
+        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        strategy);
+    strategy.close();
+  }
 }

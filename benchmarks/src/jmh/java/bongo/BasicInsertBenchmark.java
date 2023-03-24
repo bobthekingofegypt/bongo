@@ -20,6 +20,7 @@ import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
+import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
@@ -64,7 +65,13 @@ public class BasicInsertBenchmark {
           BongoSettings.builder()
               .connectionSettings(
                   BongoConnectionSettings.builder()
-                      .host("192.168.1.138:27027")
+                      .host("192.168.1.138:27017")
+                                         .credentials(
+                                                 BongoCredentials.builder()
+                                                                 .username("admin")
+                                                                 .authSource("admin")
+                                                                 .password("speal")
+                                                                 .build())
                       .compressor(new BongoCompressorZstd())
                       .build())
               .bufferPool(new BobBufferPool())
@@ -123,7 +130,8 @@ public class BasicInsertBenchmark {
                   })
               .applyConnectionString(
                   new ConnectionString(
-                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
+//                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
+                          "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin&compressors=zstd"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -158,7 +166,8 @@ public class BasicInsertBenchmark {
                   })
               .applyConnectionString(
                   new ConnectionString(
-                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
+//                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
+      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -228,17 +237,6 @@ public class BasicInsertBenchmark {
   }
 
   @Benchmark
-  public void bongoUnacknConcRe(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-    state
-        .collection
-        .withWriteConcern(new BongoWriteConcern(0, false))
-        .insertMany(
-            people,
-            state.writeConcurrentStrategy3,
-            BongoInsertManyOptions.builder().ordered(false).compress(false).build());
-  }
-
-  @Benchmark
   public void bongoUnacknConc(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     var strategy = new WriteExecutionConcurrentStrategy<Person>(3, 5);
     state
@@ -293,6 +291,13 @@ public class BasicInsertBenchmark {
   @Benchmark
   public void mongo(Blackhole bh, MyMongoClient state) {
     state.mongoCollection.insertMany(people);
+  }
+
+  @Benchmark
+  public void mongoUnordered(Blackhole bh, MyMongoClient state) {
+    state
+        .mongoCollection
+        .insertMany(people, new InsertManyOptions().ordered(false));
   }
 
   @Benchmark

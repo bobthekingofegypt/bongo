@@ -1,7 +1,6 @@
 package org.bobstuff.bongo.executionstrategy;
 
 import java.util.Collections;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.*;
@@ -11,8 +10,6 @@ import org.bobstuff.bongo.converters.BongoWriteRequestConverter;
 import org.bobstuff.bongo.exception.BongoBulkWriteException;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoBulkWriteResponse;
-import org.bobstuff.bongo.messages.BongoInsertRequest;
-import org.bobstuff.bongo.messages.BongoUpdateRequest;
 import org.bobstuff.bongo.messages.BongoWriteRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 
@@ -35,7 +32,8 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
 
     while (splitter.hasMore()) {
       var operationType = splitter.nextType();
-      var request = new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered());
+      var request =
+          new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered());
 
       var payload =
           BongoPayloadTemp.<TModel>builder()
@@ -63,7 +61,7 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
         log.trace(responsePayload.toString());
       }
 
-      tracker.addResponse(responsePayload);
+      tracker.addResponse(operationType, responsePayload);
 
       if (responsePayload.getOk() == 0) {
         System.out.println(responsePayload.getErrmsg());
@@ -81,9 +79,9 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
     socket.release();
 
     if (writeConcern.isAcknowledged()) {
-      return new BongoInsertManyResultAcknowledged(Collections.emptyMap());
+      return new BongoInsertManyResultAcknowledged(Collections.emptyMap(), tracker);
       // TODO figure this back out
-//      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
+      //      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
     }
     return new BongoInsertManyResultUnacknowledged();
   }

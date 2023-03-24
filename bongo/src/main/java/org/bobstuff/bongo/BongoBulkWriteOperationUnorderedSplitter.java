@@ -1,7 +1,6 @@
 package org.bobstuff.bongo;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bobstuff.bobbson.BobBsonBuffer;
@@ -9,30 +8,33 @@ import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.exception.BongoException;
 
-public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperationSplitter<TModel> {
-  private List<? extends BongoWriteOperation<TModel>> items;
-
-  private BongoCodec codec;
+public class BongoBulkWriteOperationUnorderedSplitter<TModel>
+    implements BongoBulkOperationSplitter<TModel> {
+  private ConcurrentLinkedQueue<BongoWriteOperation<TModel>> items;
+  BongoCodec codec;
+  private BongoWriteOperationType currentType;
 
   private Class<TModel> model;
-  private int index;
   private Map<Integer, byte[]> ids;
 
-  public BongoBulkWriteOperationSplitter(
-      List<? extends BongoWriteOperation<TModel>> items, Class<TModel> model, BongoCodec codec) {
+  public BongoBulkWriteOperationUnorderedSplitter(
+      ConcurrentLinkedQueue<BongoWriteOperation<TModel>> items,
+      Class<TModel> model,
+      BongoCodec codec) {
     this.ids = new HashMap<>(items.size());
     this.codec = codec;
     this.model = model;
     this.items = items;
-    index = 0;
+    var item = items.peek();
+    if (item == null) {
+      throw new BongoException(
+          "Items passed to BongoBulkWriteOperationUnorderedSplitter cannot be empty");
+    }
+    this.currentType = item.getType();
   }
 
   private void writeUpdate(BsonWriter writer, BongoUpdate<TModel> item) {
     codec.converter(BongoUpdate.class).write(writer, item);
-  }
-
-  private void writeDelete(BsonWriter writer, BongoDelete<TModel> item) {
-    codec.converter(BongoDelete.class).write(writer, item);
   }
 
   private void writeInsert(BsonWriter writer, BongoInsert<TModel> insert) {
@@ -41,6 +43,10 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
       throw new BongoException("item cannot be null in an insert request");
     }
     codec.converter(model).write(writer, item);
+  }
+
+  private void writeDelete(BsonWriter writer, BongoDelete<TModel> item) {
+    codec.converter(BongoDelete.class).write(writer, item);
   }
 
   @Override
@@ -54,16 +60,18 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
   }
 
   public BongoWriteOperationType nextType() {
-    return items.get(index).getType();
+    return currentType;
   }
 
   public void write(BobBsonBuffer buffer) {
-    var item = items.get(index);
-    var operationType = item.getType();
-
     var writer = new BsonWriter(buffer);
-    do {
+    var item = items.poll();
+    while (item != null) {
       var start = buffer.getTail();
+      var operationType = item.getType();
+      if (operationType != currentType) {
+        throw new BongoException("UnorderedSplitter should only contain items of a single type");
+      }
 
       switch (operationType) {
         case Update -> writeUpdate(writer, (BongoUpdate<TModel>) item);
@@ -74,25 +82,25 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
       var end = buffer.getTail();
       if (end > (16777216 - 42)) {
         buffer.setTail(start);
-        break;
-      } else {
-        index += 1;
-      }
-      if (index == items.size()) {
+        // items couldn't be added to the message so place it back into the queue
+        items.offer(item);
         break;
       }
-      item = items.get(index);
-    } while (item.getType() == operationType);
+
+      item = items.poll();
+      if (item == null) {
+        break;
+      }
+    }
   }
 
   public boolean hasMore() {
-    return index < items.size();
+    return !items.isEmpty();
   }
 
   @Override
   public void drainToQueue(
       BongoWriteOperationType type, ConcurrentLinkedQueue<BongoWriteOperation<TModel>> queue) {
-    var filteredItems = items.stream().filter(item -> item.getType() == type).toList();
-    queue.addAll(filteredItems);
+    throw new UnsupportedOperationException("UnorderedSplitter doesn't support drain to queue");
   }
 }

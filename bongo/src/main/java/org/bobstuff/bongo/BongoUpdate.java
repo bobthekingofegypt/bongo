@@ -1,9 +1,6 @@
 package org.bobstuff.bongo;
 
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.CompiledBson;
 import org.bson.BsonDocument;
@@ -20,9 +17,7 @@ public class BongoUpdate<TModel> implements BongoWriteOperation<TModel> {
   @BsonAttribute("multi")
   private boolean multiple;
 
-  public BongoUpdate() {
-
-  }
+  public BongoUpdate() {}
 
   public BongoUpdate(BsonDocument filter, List<BsonDocument> updates, boolean multiple) {
     this.filter = filter;

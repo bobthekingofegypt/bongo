@@ -1,14 +1,15 @@
 package org.bobstuff.bongo;
 
-import java.util.Map;
 import lombok.ToString;
 
+import java.util.Map;
+
 @ToString
-public class BongoInsertManyResultAcknowledged implements BongoInsertManyResult {
+public class BongoBulkWriteResultAcknowledged implements BongoBulkWriteResult {
   private final Map<Integer, byte[]> insertedIds;
   private BongoBulkWriteTracker tracker;
 
-  public BongoInsertManyResultAcknowledged(Map<Integer, byte[]> insertedIds, BongoBulkWriteTracker tracker) {
+  public BongoBulkWriteResultAcknowledged(Map<Integer, byte[]> insertedIds, BongoBulkWriteTracker tracker) {
     this.insertedIds = insertedIds;
     this.tracker = tracker;
   }
@@ -26,5 +27,10 @@ public class BongoInsertManyResultAcknowledged implements BongoInsertManyResult 
   @Override
   public boolean isAcknowledged() {
     return true;
+  }
+
+  @Override
+  public int getInsertedCount() {
+    return insertedIds.size();
   }
 }

@@ -2,9 +2,9 @@ package org.bobstuff.bongo;
 
 import java.util.Map;
 
-public interface BongoInsertManyResult {
+public interface BongoBulkWriteResult {
   Map<Integer, byte[]> getInsertedIds();
-
   int getDeletedCount();
   boolean isAcknowledged();
+  int getInsertedCount();
 }

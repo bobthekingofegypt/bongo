@@ -8,9 +8,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
-
 import lombok.ToString;
 import org.bobstuff.bobbson.*;
 import org.bobstuff.bobbson.writer.BsonWriter;
@@ -19,6 +17,7 @@ import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.exception.BongoSocketReadException;
 import org.bobstuff.bongo.messages.BongoResponseHeader;
+import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -173,12 +172,13 @@ public class WireProtocol {
           "Response was null from the server " + socket.getServerAddress());
     }
 
-    //    messageBuffer.setHead(5);
-    //    var readerDebug = new BsonReader(messageBuffer);
-    //    var responseDebug = codec.decode(BsonDocument.class, readerDebug);
-    //    if (responseDebug != null) {
-    //      System.out.println(responseDebug);
-    //    }
+        messageBuffer.setHead(5);
+        var readerDebug = new BsonReader(messageBuffer);
+        var responseDebug = codec.decode(BsonDocument.class, readerDebug);
+        if (responseDebug != null) {
+          System.out.println("*********************");
+          System.out.println(responseDebug);
+        }
 
     bufferPool.recycle(messageBuffer);
     return new Response<>(responseHeader, flagBits, response);
@@ -199,29 +199,29 @@ public class WireProtocol {
   }
 
   public <T, V> int sendCommandMessageTemp(
-          BongoSocket socket,
-          BobBsonConverter<T> converter,
-          @NonNull T value,
-          boolean compress,
-          boolean stream,
-          @Nullable BongoPayloadTemp payload) {
+      BongoSocket socket,
+      BobBsonConverter<T> converter,
+      @NonNull T value,
+      boolean compress,
+      boolean stream,
+      @Nullable BongoPayloadTemp payload) {
     var requestId = socket.getNextRequestId();
     var buffer =
-            prepareCommandMessageTemp(socket, converter, value, compress, stream, payload, requestId);
+        prepareCommandMessageTemp(socket, converter, value, compress, stream, payload, requestId);
 
     for (var buf : buffer.getBuffers()) {
       socket.write(buf);
     }
 
-    var bos = new ByteArrayOutputStream();
-    for (var buf : buffer.getBuffers()) {
-      bos.write(buf.getArray(), buf.getHead(), buf.getTail());
-    }
-    try {
-      Files.write(Path.of("/tmp/bbbbb" + requestId), bos.toByteArray());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+//    var bos = new ByteArrayOutputStream();
+//    for (var buf : buffer.getBuffers()) {
+//      bos.write(buf.getArray(), buf.getHead(), buf.getTail());
+//    }
+//    try {
+//      Files.write(Path.of("/tmp/bbbbb" + requestId), bos.toByteArray());
+//    } catch (IOException e) {
+//      throw new RuntimeException(e);
+//    }
 
     buffer.release();
 
@@ -248,13 +248,13 @@ public class WireProtocol {
   }
 
   public <T, V> DynamicBobBsonBuffer prepareCommandMessageTemp(
-          BongoSocket socket,
-          BobBsonConverter<T> converter,
-          @NonNull T value,
-          boolean compress,
-          boolean stream,
-          @Nullable BongoPayloadTemp payload,
-          int requestId) {
+      BongoSocket socket,
+      BobBsonConverter<T> converter,
+      @NonNull T value,
+      boolean compress,
+      boolean stream,
+      @Nullable BongoPayloadTemp payload,
+      int requestId) {
     var buffer = new DynamicBobBsonBuffer(bufferPool);
     buffer.skipTail(4);
     buffer.writeInteger(requestId);
@@ -298,8 +298,8 @@ public class WireProtocol {
           throw new BongoException("Dynamic buffers inner buffer has inaccessible array");
         }
         compressedBuffer =
-                compressor.compress(
-                        innerArray, innerBuffer.getHead(), innerBuffer.getTail(), bufferPool);
+            compressor.compress(
+                innerArray, innerBuffer.getHead(), innerBuffer.getTail(), bufferPool);
       } else {
         var outputBuffer = bufferPool.allocate(contentBuffer.getTail());
         var outputBufferArray = outputBuffer.getArray();
@@ -313,11 +313,11 @@ public class WireProtocol {
             throw new BongoException("Buffer has inaccessible backing array");
           }
           System.arraycopy(
-                  bArray, b.getHead(), outputBufferArray, position, b.getTail() - b.getHead());
+              bArray, b.getHead(), outputBufferArray, position, b.getTail() - b.getHead());
           position += b.getTail() - b.getHead();
         }
         compressedBuffer =
-                compressor.compress(outputBufferArray, 0, contentBuffer.getTail(), bufferPool);
+            compressor.compress(outputBufferArray, 0, contentBuffer.getTail(), bufferPool);
 
         bufferPool.recycle(outputBuffer);
       }
@@ -332,7 +332,7 @@ public class WireProtocol {
       }
 
       buffer.writeBytes(
-              compressedBufferArray, compressedBuffer.getHead(), compressedBuffer.getTail());
+          compressedBufferArray, compressedBuffer.getHead(), compressedBuffer.getTail());
       bufferPool.recycle(compressedBuffer);
 
       contentBuffer.release();

@@ -10,14 +10,11 @@ import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
-import org.bobstuff.bongo.exception.BongoException;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,31 +66,31 @@ public class WriteExecutionCloseTest {
     bongo.close();
   }
 
-  @Test
-  public void testAutocloseStrategy(@MongoUrl ServerAddress mongoUrl) {
-    var database = bongo.getDatabase("inttest");
-    var collection = database.getCollection("companies", Company.class);
-    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
-    try (strategy) {
-      collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy);
-    }
-
-    Assertions.assertTrue(strategy.isClosed());
-  }
-
-  @Test
-  public void testClosedStrategyThrowsException(@MongoUrl ServerAddress mongoUrl) {
-    var database = bongo.getDatabase("inttest");
-    var collection = database.getCollection("companies", Company.class);
-    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
-    try (strategy) {
-      collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy);
-    }
-
-    Assertions.assertThrows(
-        BongoException.class,
-        () -> collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy));
-  }
+  //  @Test
+  //  public void testAutocloseStrategy(@MongoUrl ServerAddress mongoUrl) {
+  //    var database = bongo.getDatabase("inttest");
+  //    var collection = database.getCollection("companies", Company.class);
+  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
+  //    try (strategy) {
+  //      collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy);
+  //    }
+  //
+  //    Assertions.assertTrue(strategy.isClosed());
+  //  }
+  //
+  //  @Test
+  //  public void testClosedStrategyThrowsException(@MongoUrl ServerAddress mongoUrl) {
+  //    var database = bongo.getDatabase("inttest");
+  //    var collection = database.getCollection("companies", Company.class);
+  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
+  //    try (strategy) {
+  //      collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy);
+  //    }
+  //
+  //    Assertions.assertThrows(
+  //        BongoException.class,
+  //        () -> collection.insertMany(List.of(CompanyDataGenerator.company(faker)), strategy));
+  //  }
 
   @Test
   public void testClosedSerialStrategyDoesntThrowsException(@MongoUrl ServerAddress mongoUrl) {

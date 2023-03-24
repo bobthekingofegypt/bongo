@@ -1,11 +1,12 @@
 package org.bobstuff.bongo;
 
-import java.util.Map;
 import lombok.ToString;
 
+import java.util.Map;
+
 @ToString
-public class BongoInsertManyResultUnacknowledged implements BongoInsertManyResult {
-  public BongoInsertManyResultUnacknowledged() {}
+public class BongoBulkWriteResultUnacknowledged implements BongoBulkWriteResult {
+  public BongoBulkWriteResultUnacknowledged() {}
 
   @Override
   public Map<Integer, byte[]> getInsertedIds() {
@@ -22,6 +23,11 @@ public class BongoInsertManyResultUnacknowledged implements BongoInsertManyResul
   @Override
   public boolean isAcknowledged() {
     return false;
+  }
+
+  @Override
+  public int getInsertedCount() {
+    throw new UnsupportedOperationException("Inserted count is not provided for unacknowledged bulk requests");
   }
 
 

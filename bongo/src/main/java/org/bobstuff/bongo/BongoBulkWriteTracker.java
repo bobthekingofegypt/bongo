@@ -7,6 +7,7 @@ import org.bobstuff.bongo.messages.BongoBulkWriteResponse;
 
 public class BongoBulkWriteTracker {
   private int numberCompleted;
+  private int deletedCount;
   private List<BongoBulkWriteError> writeErrors;
 
   private boolean ordered;
@@ -16,8 +17,13 @@ public class BongoBulkWriteTracker {
     this.ordered = ordered;
   }
 
-  public void addResponse(BongoBulkWriteResponse response) {
+  public void addResponse(BongoWriteOperationType operationType, BongoBulkWriteResponse response) {
     numberCompleted += response.getN();
+
+    if (operationType == BongoWriteOperationType.Delete) {
+      deletedCount += response.getN();
+    }
+
     if (response.getWriteErrors() != null) {
       writeErrors.addAll(response.getWriteErrors());
     }
@@ -38,6 +44,10 @@ public class BongoBulkWriteTracker {
 
   public int getNumberCompleted() {
     return numberCompleted;
+  }
+
+  public int getDeletedCount() {
+    return deletedCount;
   }
 
   public void setNumberCompleted(int numberCompleted) {

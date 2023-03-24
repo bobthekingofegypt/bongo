@@ -10,12 +10,13 @@ import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.compressors.BongoCompressor;
+import org.bobstuff.bongo.connection.BongoSocket;
+import org.bobstuff.bongo.converters.BongoWriteRequestConverter;
 import org.bobstuff.bongo.exception.BongoBulkWriteException;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoBulkWriteResponse;
-import org.bobstuff.bongo.messages.BongoInsertRequest;
+import org.bobstuff.bongo.messages.BongoWriteRequest;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Slf4j
 public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionStrategy<TModel> {
@@ -42,12 +43,10 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   }
 
   @Override
-  public BongoInsertManyResult execute(
+  public BongoBulkWriteResult execute(
       BongoCollection.Identifier identifier,
-      Class<TModel> model,
-      List<TModel> items,
+      BongoBulkOperationSplitter<TModel> splitter,
       BongoInsertManyOptions options,
-      @Nullable BongoInsertProcessor<TModel> insertProcessor,
       BufferDataPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,
@@ -56,52 +55,17 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
     if (closed) {
       throw new BongoException("Attempt to use closed WriteExecutionStrategy");
     }
-    // TODO only allow this strategy is ordered is false when number of senders > 1
+
+    if (options.isOrdered() && (writers > 1 || senders > 1)) {
+      throw new BongoException(
+          "Cannot run concurrent strategy on an ordered write operation with more than 1 writer or"
+              + " sender.  You can use concurrent strategy to run request serialisation and sending"
+              + " on independent threads but writers and senders must be 1 to maintain order");
+    }
+
     var socket = connectionProvider.getReadConnection();
     var requestCompression =
         BongoCompressor.shouldCompress(socket.getCompressor(), options.getCompress());
-
-    var subListSize = (int) Math.ceil(items.size() / (float) writers);
-    for (var i = 0; i < writers; i += 1) {
-      final int indexOffset = i * subListSize;
-      final List<TModel> subList =
-          items.subList(indexOffset, Math.min(((i + 1) * subListSize), items.size()));
-      writersCompletionService.submit(
-          () -> {
-            var wrappedItems =
-                new BongoWrappedBulkItems<>(
-                    subList, codec.converter(model), insertProcessor, indexOffset);
-            while (wrappedItems.hasMore()) {
-              var insertRequest =
-                  new BongoInsertRequest(
-                      identifier.getCollectionName(),
-                      identifier.getDatabaseName(),
-                      writeConcern,
-                      options.isOrdered());
-              var payload =
-                  BongoPayload.<TModel>builder()
-                      .identifier("documents")
-                      .model(model)
-                      .items(wrappedItems)
-                      .build();
-
-              var requestId = socket.getNextRequestId();
-              var buffer =
-                  wireProtocol.prepareCommandMessage(
-                      socket,
-                      codec.converter(BongoInsertRequest.class),
-                      insertRequest,
-                      requestCompression,
-                      false,
-                      payload,
-                      requestId);
-
-              messageQueue.put(buffer);
-            }
-
-            return wrappedItems.getIds();
-          });
-    }
 
     for (var i = 0; i < senders; i += 1) {
       sendersCompletionService.submit(
@@ -109,7 +73,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             var localSocket = connectionProvider.getReadConnection();
             var tracker = new BongoBulkWriteTracker(options.isOrdered());
             while (true) {
-              DynamicBobBsonBuffer buffer = null;
+              DynamicBobBsonBuffer buffer;
               try {
                 buffer = messageQueue.take();
               } catch (InterruptedException e) {
@@ -142,7 +106,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
               // TODO handle failure here.  If there is a command failure or a writeconcern failure
               // should we abort all?
 
-              tracker.addResponse(responsePayload);
+//              tracker.addResponse(responsePayload);
             }
 
             localSocket.release();
@@ -151,19 +115,62 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
           });
     }
 
+    // TODO fork logic for 1-1 ordered concurrent
+
     var allIds = new HashMap<Integer, byte[]>();
 
-    var done = 0;
-    while (done < writers) {
-      try {
-        var ids = writersCompletionService.take().get();
-        allIds.putAll(ids);
-      } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(e);
+    if (writers == 1 && senders == 1 && options.isOrdered()) {
+      // If we are one to one and ordered we need to write the future requests in
+      // order breaking on each change of request type, so use an ordered splitter
+      // as it was sent to the strategy
+      writeBulkRequests(
+          splitter,
+          identifier,
+          writeConcern,
+          requestCompression,
+          options,
+          wireProtocol,
+          socket,
+          allIds);
+    } else {
+      var insertsQueue = new ConcurrentLinkedQueue<BongoWriteOperation<TModel>>();
+      splitter.drainToQueue(BongoWriteOperationType.Insert, insertsQueue);
+      if (!insertsQueue.isEmpty()) {
+        final var inserts =
+            new BongoBulkWriteOperationUnorderedSplitter<>(
+                insertsQueue, splitter.getModel(), codec);
+
+        writeBulkRequests(
+            inserts,
+            identifier,
+            writeConcern,
+            requestCompression,
+            options,
+            wireProtocol,
+            socket,
+            allIds);
       }
 
-      done += 1;
+      var updatesQueue = new ConcurrentLinkedQueue<BongoWriteOperation<TModel>>();
+      splitter.drainToQueue(BongoWriteOperationType.Update, updatesQueue);
+      if (!updatesQueue.isEmpty()) {
+        final var updates =
+            new BongoBulkWriteOperationUnorderedSplitter<>(
+                updatesQueue, splitter.getModel(), codec);
+        writeBulkRequests(
+            updates,
+            identifier,
+            writeConcern,
+            requestCompression,
+            options,
+            wireProtocol,
+            socket,
+            allIds);
+      }
     }
+    //    var tracker = new BongoBulkWriteTracker(options.isOrdered());
+
+    //    var subListSize = (int) Math.ceil(items.size() / (float) writers);
 
     try {
       for (var i = 0; i < senders; i += 1) {
@@ -174,7 +181,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
     }
 
     var combinedTracker = new BongoBulkWriteTracker(options.isOrdered());
-    done = 0;
+    var done = 0;
     while (done < senders) {
       try {
         var tracker = sendersCompletionService.take().get();
@@ -192,9 +199,64 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
 
     socket.release();
     if (writeConcern.isAcknowledged()) {
-      return new BongoInsertManyResultAcknowledged(allIds);
+      return new BongoBulkWriteResultAcknowledged(allIds, combinedTracker);
     }
-    return new BongoInsertManyResultUnacknowledged();
+    return new BongoBulkWriteResultUnacknowledged();
+  }
+
+  private void writeBulkRequests(
+      BongoBulkOperationSplitter<TModel> splitter,
+      BongoCollection.Identifier identifier,
+      BongoWriteConcern writeConcern,
+      boolean requestCompression,
+      BongoInsertManyOptions options,
+      WireProtocol wireProtocol,
+      BongoSocket socket,
+      Map<Integer, byte[]> allIds) {
+    for (var i = 0; i < writers; i += 1) {
+      writersCompletionService.submit(
+          () -> {
+            while (splitter.hasMore()) {
+              var request =
+                  new BongoWriteRequest(
+                      splitter.nextType(), identifier, writeConcern, options.isOrdered());
+
+              var payload =
+                  BongoPayloadTemp.<TModel>builder()
+                      .identifier(splitter.nextType().getPayload())
+                      .items(splitter)
+                      .build();
+
+              var requestId = socket.getNextRequestId();
+              var buffer =
+                  wireProtocol.prepareCommandMessageTemp(
+                      socket,
+                      new BongoWriteRequestConverter(),
+                      request,
+                      requestCompression,
+                      false,
+                      payload,
+                      requestId);
+
+              messageQueue.put(buffer);
+            }
+
+            //            return splitter.getIds();
+            return Collections.emptyMap();
+          });
+    }
+
+    var done = 0;
+    while (done < writers) {
+      try {
+        var ids = writersCompletionService.take().get();
+        allIds.putAll(ids);
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+
+      done += 1;
+    }
   }
 
   public void close() {
@@ -204,7 +266,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
     closed = true;
   }
 
-  @Override
+  //  @Override
   public boolean isClosed() {
     return closed;
   }

@@ -2,7 +2,9 @@ package org.bobstuff.bongo;
 
 public enum BongoWriteOperationType {
   Update("update", "updates"),
-  Insert("insert", "documents");
+  Insert("insert", "documents"),
+
+  Delete("delete", "deletes");
 
   private String command;
   private String payload;

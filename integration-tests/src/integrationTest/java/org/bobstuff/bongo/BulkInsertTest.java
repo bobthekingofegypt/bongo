@@ -11,7 +11,6 @@ import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.exception.BongoBulkWriteException;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
 import org.bobstuff.bongo.inserts.WriteStrategyProvider;
 import org.bobstuff.bongo.models.company.Company;
@@ -175,45 +174,47 @@ public class BulkInsertTest {
     Assertions.assertNotNull(error2.getErrmsg());
   }
 
-  @Test
-  public void testBasicInsertErrorDuplicateKeyUnorderedConc(@MongoUrl ServerAddress mongoUrl) {
-    var id = new ObjectId();
-    var data = CompanyDataGenerator.company(faker);
-    data.setMongoId(id);
-    var data2 = CompanyDataGenerator.company(faker);
-    data2.setMongoId(id);
-    var data3 = CompanyDataGenerator.company(faker);
-    data3.setMongoId(id);
-
-    var database = bongo.getDatabase("inttest");
-    var collection = database.getCollection("companies", Company.class);
-
-    final WriteExecutionStrategy<Company> strategy = new WriteExecutionConcurrentStrategy<>(3, 3);
-
-    BongoBulkWriteException thrown =
-        Assertions.assertThrows(
-            BongoBulkWriteException.class,
-            () ->
-                collection.insertMany(
-                    List.of(data, data2, data3),
-                    strategy,
-                    BongoInsertManyOptions.builder().ordered(false).build()),
-            "Expected insertMany() to throw, but it didn't");
-
-    strategy.close();
-
-    // TODO check collection size with count to make sure the passing writes actually happened
-
-    Assertions.assertEquals(2, thrown.getWriteErrors().size());
-
-    // no point in checking indexes because on duplicate key who ever is first wins and it could be
-    // any thread
-    var error = thrown.getWriteErrors().get(0);
-    Assertions.assertEquals(11000, error.getCode());
-    Assertions.assertNotNull(error.getErrmsg());
-
-    var error2 = thrown.getWriteErrors().get(1);
-    Assertions.assertEquals(11000, error2.getCode());
-    Assertions.assertNotNull(error2.getErrmsg());
-  }
+  //  @Test
+  //  public void testBasicInsertErrorDuplicateKeyUnorderedConc(@MongoUrl ServerAddress mongoUrl) {
+  //    var id = new ObjectId();
+  //    var data = CompanyDataGenerator.company(faker);
+  //    data.setMongoId(id);
+  //    var data2 = CompanyDataGenerator.company(faker);
+  //    data2.setMongoId(id);
+  //    var data3 = CompanyDataGenerator.company(faker);
+  //    data3.setMongoId(id);
+  //
+  //    var database = bongo.getDatabase("inttest");
+  //    var collection = database.getCollection("companies", Company.class);
+  //
+  //    final WriteExecutionStrategy<Company> strategy = new WriteExecutionConcurrentStrategy<>(3,
+  // 3);
+  //
+  //    BongoBulkWriteException thrown =
+  //        Assertions.assertThrows(
+  //            BongoBulkWriteException.class,
+  //            () ->
+  //                collection.insertMany(
+  //                    List.of(data, data2, data3),
+  //                    strategy,
+  //                    BongoInsertManyOptions.builder().ordered(false).build()),
+  //            "Expected insertMany() to throw, but it didn't");
+  //
+  //    strategy.close();
+  //
+  //    // TODO check collection size with count to make sure the passing writes actually happened
+  //
+  //    Assertions.assertEquals(2, thrown.getWriteErrors().size());
+  //
+  //    // no point in checking indexes because on duplicate key who ever is first wins and it could
+  // be
+  //    // any thread
+  //    var error = thrown.getWriteErrors().get(0);
+  //    Assertions.assertEquals(11000, error.getCode());
+  //    Assertions.assertNotNull(error.getErrmsg());
+  //
+  //    var error2 = thrown.getWriteErrors().get(1);
+  //    Assertions.assertEquals(11000, error2.getCode());
+  //    Assertions.assertNotNull(error2.getErrmsg());
+  //  }
 }

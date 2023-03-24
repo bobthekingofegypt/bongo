@@ -35,7 +35,7 @@ application {
 }
 
 jmh {
-    includes = ['BasicFindCompanyBenchmark']
+    includes = ['BasicInsertBenchmark']
 
 //    includes = ['SimpleWriteLotsInts']
     profilers = ['gc']
