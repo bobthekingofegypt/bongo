@@ -66,12 +66,12 @@ public class BasicInsertBenchmark {
               .connectionSettings(
                   BongoConnectionSettings.builder()
                       .host("192.168.1.138:27017")
-                                         .credentials(
-                                                 BongoCredentials.builder()
-                                                                 .username("admin")
-                                                                 .authSource("admin")
-                                                                 .password("speal")
-                                                                 .build())
+                      .credentials(
+                          BongoCredentials.builder()
+                              .username("admin")
+                              .authSource("admin")
+                              .password("speal")
+                              .build())
                       .compressor(new BongoCompressorZstd())
                       .build())
               .bufferPool(new BobBufferPool())
@@ -130,8 +130,9 @@ public class BasicInsertBenchmark {
                   })
               .applyConnectionString(
                   new ConnectionString(
-//                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
-                          "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin&compressors=zstd"))
+                      //
+                      // "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
+                      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin&compressors=zstd"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -166,18 +167,24 @@ public class BasicInsertBenchmark {
                   })
               .applyConnectionString(
                   new ConnectionString(
-//                      "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
-      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin"))
+                      //
+                      // "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
+                      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
       mongoCollection = mongoDatabase.getCollection("people4", Person.class);
     }
 
-    @TearDown(Level.Trial)
-    public void doTearDown() {
+    @TearDown(Level.Iteration)
+    public void doIterationTearDown() {
       System.out.println("IS THIS RUNNING?");
       mongoCollection.drop();
+    }
+
+    @TearDown(Level.Trial)
+    public void doTrialTearDown() {
+      System.out.println("IS THIS RUNNING?");
       client.close();
     }
   }
@@ -237,16 +244,18 @@ public class BasicInsertBenchmark {
   }
 
   @Benchmark
-  public void bongoUnacknConc(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+  public void bongoConc(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     var strategy = new WriteExecutionConcurrentStrategy<Person>(3, 5);
-    state
+    var result = state
         .collection
-        .withWriteConcern(new BongoWriteConcern(0, false))
         .insertMany(
             people,
             strategy,
             BongoInsertManyOptions.builder().ordered(false).compress(false).build());
     strategy.close();
+    if (result.getInsertedIds().size() != people.size()) {
+      throw new RuntimeException("inserted ids don't match inserted count");
+    }
   }
 
   //  @Benchmark
@@ -295,9 +304,7 @@ public class BasicInsertBenchmark {
 
   @Benchmark
   public void mongoUnordered(Blackhole bh, MyMongoClient state) {
-    state
-        .mongoCollection
-        .insertMany(people, new InsertManyOptions().ordered(false));
+    state.mongoCollection.insertMany(people, new InsertManyOptions().ordered(false));
   }
 
   @Benchmark

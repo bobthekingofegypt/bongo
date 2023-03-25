@@ -1,5 +1,6 @@
 package org.bobstuff.bongo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,13 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
       throw new BongoException("item cannot be null in an insert request");
     }
     codec.converter(model).write(writer, item);
+
+    var writerId = (BongoBsonWriterId) writer;
+    var writtenId = writerId.getWrittenId();
+    if (writtenId != null) {
+      ids.put(index, writtenId);
+      writerId.reset();
+    }
   }
 
   @Override
@@ -57,11 +65,16 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
     return items.get(index).getType();
   }
 
-  public void write(BobBsonBuffer buffer) {
+  public void write(BobBsonBuffer buffer, BongoIndexMap indexMap) {
     var item = items.get(index);
     var operationType = item.getType();
 
-    var writer = new BsonWriter(buffer);
+    var writer =
+        switch (operationType) {
+          case Insert -> new BongoBsonWriterId(buffer);
+          default -> new BsonWriter(buffer);
+        };
+
     do {
       var start = buffer.getTail();
 
@@ -76,6 +89,7 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
         buffer.setTail(start);
         break;
       } else {
+        indexMap.add(index);
         index += 1;
       }
       if (index == items.size()) {
@@ -91,8 +105,20 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
 
   @Override
   public void drainToQueue(
-      BongoWriteOperationType type, ConcurrentLinkedQueue<BongoWriteOperation<TModel>> queue) {
-    var filteredItems = items.stream().filter(item -> item.getType() == type).toList();
+      BongoWriteOperationType type,
+      ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>> queue) {
+    var filteredItems = new ArrayList<BongoBulkWriteOperationIndexedWrapper<TModel>>();
+    for (int i = 0; i < items.size(); i++) {
+      var item = items.get(i);
+      if (item.getType() == type) {
+        filteredItems.add(new BongoBulkWriteOperationIndexedWrapper<>(i, item));
+      }
+    }
     queue.addAll(filteredItems);
+  }
+
+  @Override
+  public Map<Integer, byte[]> getIds() {
+    return ids;
   }
 }

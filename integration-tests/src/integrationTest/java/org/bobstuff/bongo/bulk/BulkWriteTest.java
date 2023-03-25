@@ -16,7 +16,7 @@ import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionSerialStrategy;
+import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @ExtendWith(MongoDbResolver.class)
 public class BulkWriteTest {
@@ -243,8 +245,10 @@ public class BulkWriteTest {
     Assertions.assertNotNull(insertThreeEntry);
   }
 
-  @Test
-  public void testManyOperationsAggregateReturnValue(@MongoUrl ServerAddress mongoUrl) {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(WriteStrategyProvider.class)
+  public void testManyOperationsAggregateReturnValue(WriteStrategyProvider.WriteStrategyWrapper strategyWrapper) {
+    var strategy = strategyWrapper.getStrategy();
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -255,24 +259,32 @@ public class BulkWriteTest {
 
     var operations = new ArrayList<BongoWriteOperation<Company>>();
     operations.add(
-            new BongoUpdate<>(
-                    Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
-                    List.of(Updates.set("name", "nothing happens").toBsonDocument()),
-                    false));
+        new BongoUpdate<>(
+            Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
+            List.of(Updates.set("name", "nothing happens").toBsonDocument()),
+            false));
     operations.add(new BongoInsert<>(insertOne));
     operations.add(new BongoInsert<>(insertTwo));
     operations.add(new BongoInsert<>(insertThree));
-    operations.add(new BongoInsert<>(insertFour));
-    operations.add(new BongoDelete<>(Filters.eq("name", entries.get(2).getName()).toBsonDocument(), false));
     operations.add(
-            new BongoUpdate<>(
-                    Filters.eq("name", entries.get(1).getName()).toBsonDocument(),
-                    List.of(Updates.set("name", "some other update").toBsonDocument()),
-                    false));
-    var strategy = new WriteExecutionSerialStrategy<Company>();
-    var bulkResult = collection.bulkWrite(
+        new BongoDelete<>(Filters.eq("name", entries.get(2).getName()).toBsonDocument(), false));
+    operations.add(new BongoInsert<>(insertFour));
+    operations.add(
+        new BongoUpdate<>(
+            Filters.eq("name", entries.get(1).getName()).toBsonDocument(),
+            List.of(Updates.set("name", "some other update").toBsonDocument()),
+            false));
+    operations.add(
+        new BongoUpdate<>(
+            Filters.eq("name", "doesn't exist in this world").toBsonDocument(),
+            List.of(Updates.set("name", "some other update").toBsonDocument()),
+            false,
+            true));
+    //    var strategy = new WriteExecutionSerialStrategy<Company>();
+    var bulkResult =
+        collection.bulkWrite(
             operations,
-            BongoInsertManyOptions.builder().ordered(false).compress(false).build(),
+            strategyWrapper.getOptions(),
             strategy);
     strategy.close();
 
@@ -281,10 +293,19 @@ public class BulkWriteTest {
       var results = collection.find(strategy2).into(new ArrayList<>());
       results.forEach(System.out::println);
     }
-    Assertions.assertEquals(6, count);
+    Assertions.assertEquals(7, count);
     Assertions.assertEquals(1, bulkResult.getDeletedCount());
     Assertions.assertEquals(4, bulkResult.getInsertedIds().size());
+    Assertions.assertNotNull(bulkResult.getInsertedIds().get(1));
+    Assertions.assertNotNull(bulkResult.getInsertedIds().get(2));
+    Assertions.assertNotNull(bulkResult.getInsertedIds().get(3));
+    Assertions.assertNotNull(bulkResult.getInsertedIds().get(5));
+    Assertions.assertNull(bulkResult.getInsertedIds().get(4));
     Assertions.assertEquals(4, bulkResult.getInsertedCount());
+    Assertions.assertEquals(3, bulkResult.getMatchedCount());
+    Assertions.assertEquals(2, bulkResult.getModifiedCount());
+    Assertions.assertEquals(1, bulkResult.getUpsertedIds().size());
+    Assertions.assertEquals(7, bulkResult.getUpsertedIds().get(0).getIndex());
   }
 
   @Test

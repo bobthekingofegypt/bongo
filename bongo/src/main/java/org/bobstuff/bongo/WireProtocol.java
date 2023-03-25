@@ -2,13 +2,10 @@ package org.bobstuff.bongo;
 
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import lombok.ToString;
 import org.bobstuff.bobbson.*;
 import org.bobstuff.bobbson.writer.BsonWriter;
@@ -172,13 +169,13 @@ public class WireProtocol {
           "Response was null from the server " + socket.getServerAddress());
     }
 
-        messageBuffer.setHead(5);
-        var readerDebug = new BsonReader(messageBuffer);
-        var responseDebug = codec.decode(BsonDocument.class, readerDebug);
-        if (responseDebug != null) {
-          System.out.println("*********************");
-          System.out.println(responseDebug);
-        }
+//    messageBuffer.setHead(5);
+//    var readerDebug = new BsonReader(messageBuffer);
+//    var responseDebug = codec.decode(BsonDocument.class, readerDebug);
+//    if (responseDebug != null) {
+//      System.out.println("*********************");
+//      System.out.println(responseDebug);
+//    }
 
     bufferPool.recycle(messageBuffer);
     return new Response<>(responseHeader, flagBits, response);
@@ -213,15 +210,15 @@ public class WireProtocol {
       socket.write(buf);
     }
 
-//    var bos = new ByteArrayOutputStream();
-//    for (var buf : buffer.getBuffers()) {
-//      bos.write(buf.getArray(), buf.getHead(), buf.getTail());
-//    }
-//    try {
-//      Files.write(Path.of("/tmp/bbbbb" + requestId), bos.toByteArray());
-//    } catch (IOException e) {
-//      throw new RuntimeException(e);
-//    }
+    //    var bos = new ByteArrayOutputStream();
+    //    for (var buf : buffer.getBuffers()) {
+    //      bos.write(buf.getArray(), buf.getHead(), buf.getTail());
+    //    }
+    //    try {
+    //      Files.write(Path.of("/tmp/bbbbb" + requestId), bos.toByteArray());
+    //    } catch (IOException e) {
+    //      throw new RuntimeException(e);
+    //    }
 
     buffer.release();
 
@@ -285,7 +282,7 @@ public class WireProtocol {
         contentBuffer.writeString(payload.getIdentifier());
         contentBuffer.writeByte((byte) 0);
 
-        payload.getItems().write(contentBuffer);
+        payload.getItems().write(contentBuffer, payload.getIndexMap());
 
         contentBuffer.writeInteger(position, contentBuffer.getTail() - position);
       }
@@ -354,7 +351,7 @@ public class WireProtocol {
         buffer.writeString(payload.getIdentifier());
         buffer.writeByte((byte) 0);
 
-        payload.getItems().write(buffer);
+        payload.getItems().write(buffer, payload.getIndexMap());
 
         buffer.writeInteger(position, buffer.getTail() - position);
       }

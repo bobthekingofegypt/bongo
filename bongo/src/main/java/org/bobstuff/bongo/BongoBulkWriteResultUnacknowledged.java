@@ -1,8 +1,9 @@
 package org.bobstuff.bongo;
 
-import lombok.ToString;
-
+import java.util.List;
 import java.util.Map;
+import lombok.ToString;
+import org.bobstuff.bongo.messages.BongoIndexedIdOperation;
 
 @ToString
 public class BongoBulkWriteResultUnacknowledged implements BongoBulkWriteResult {
@@ -16,8 +17,8 @@ public class BongoBulkWriteResultUnacknowledged implements BongoBulkWriteResult 
 
   @Override
   public int getDeletedCount() {
-    throw new UnsupportedOperationException("Deletion count is not provided for unacknowledged bulk requests");
-
+    throw new UnsupportedOperationException(
+        "Deletion count is not provided for unacknowledged bulk requests");
   }
 
   @Override
@@ -27,8 +28,25 @@ public class BongoBulkWriteResultUnacknowledged implements BongoBulkWriteResult 
 
   @Override
   public int getInsertedCount() {
-    throw new UnsupportedOperationException("Inserted count is not provided for unacknowledged bulk requests");
+    throw new UnsupportedOperationException(
+        "Inserted count is not provided for unacknowledged bulk requests");
   }
 
+  @Override
+  public int getMatchedCount() {
+    throw new UnsupportedOperationException(
+        "Matched count is not provided for unacknowledged bulk requests");
+  }
 
+  @Override
+  public int getModifiedCount() {
+    throw new UnsupportedOperationException(
+        "Modified count is not provided for unacknowledged bulk requests");
+  }
+
+  @Override
+  public List<BongoIndexedIdOperation> getUpsertedIds() {
+    throw new UnsupportedOperationException(
+        "Upserted IDs are not provided for unacknowledged bulk requests");
+  }
 }

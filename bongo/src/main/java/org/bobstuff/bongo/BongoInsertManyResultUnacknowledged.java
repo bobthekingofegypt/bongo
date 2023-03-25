@@ -14,15 +14,7 @@ public class BongoInsertManyResultUnacknowledged implements BongoInsertManyResul
   }
 
   @Override
-  public int getDeletedCount() {
-    throw new UnsupportedOperationException("Deletion count is not provided for unacknowledged bulk requests");
-
-  }
-
-  @Override
   public boolean isAcknowledged() {
     return false;
   }
-
-
 }

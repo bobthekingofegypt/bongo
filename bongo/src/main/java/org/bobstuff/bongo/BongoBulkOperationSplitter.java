@@ -1,5 +1,6 @@
 package org.bobstuff.bongo;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bongo.codec.BongoCodec;
@@ -11,10 +12,13 @@ public interface BongoBulkOperationSplitter<TModel> {
 
   public BongoWriteOperationType nextType();
 
-  void write(BobBsonBuffer buffer);
+  void write(BobBsonBuffer buffer, BongoIndexMap indexMap);
 
   boolean hasMore();
 
   void drainToQueue(
-      BongoWriteOperationType type, ConcurrentLinkedQueue<BongoWriteOperation<TModel>> queue);
+      BongoWriteOperationType type,
+      ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>> queue);
+
+  Map<Integer, byte[]> getIds();
 }

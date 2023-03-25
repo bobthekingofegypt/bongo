@@ -1,25 +1,42 @@
 package org.bobstuff.bongo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.bobstuff.bongo.messages.BongoBulkWriteError;
 import org.bobstuff.bongo.messages.BongoBulkWriteResponse;
+import org.bobstuff.bongo.messages.BongoIndexedIdOperation;
 
 public class BongoBulkWriteTracker {
-  private int numberCompleted;
   private int deletedCount;
   private List<BongoBulkWriteError> writeErrors;
 
+  private Map<Integer, byte[]> insertedIds;
+  private List<BongoIndexedIdOperation> upsertedIds;
+  private int matchedCount;
+  private int modifiedCount;
   private boolean ordered;
 
   public BongoBulkWriteTracker(boolean ordered) {
     writeErrors = new ArrayList<>();
+    insertedIds = new HashMap<>();
+    upsertedIds = new ArrayList<>();
     this.ordered = ordered;
   }
 
-  public void addResponse(BongoWriteOperationType operationType, BongoBulkWriteResponse response) {
-    numberCompleted += response.getN();
+  public BongoBulkWriteTracker(boolean ordered, Map<Integer, byte[]> insertedIds) {
+    writeErrors = new ArrayList<>();
+    this.insertedIds = insertedIds;
+    upsertedIds = new ArrayList<>();
+    this.ordered = ordered;
+  }
 
+  public void addResponse(
+      BongoWriteOperationType operationType,
+      BongoBulkWriteResponse response,
+      Map<Integer, byte[]> insertedIds,
+      BongoIndexMap indexMap) {
     if (operationType == BongoWriteOperationType.Delete) {
       deletedCount += response.getN();
     }
@@ -27,11 +44,27 @@ public class BongoBulkWriteTracker {
     if (response.getWriteErrors() != null) {
       writeErrors.addAll(response.getWriteErrors());
     }
+
+    if (operationType == BongoWriteOperationType.Update) {
+      matchedCount += response.getN();
+      modifiedCount += response.getNModified();
+      if (response.getUpserted() != null) {
+        for (var upsert : response.getUpserted()) {
+          upsert.setIndex(indexMap.get(upsert.getIndex()));
+          upsertedIds.add(upsert);
+        }
+      }
+    }
+
+//    this.insertedIds.putAll(insertedIds);
   }
 
   public void mergeTracker(BongoBulkWriteTracker tracker) {
-    numberCompleted += tracker.getNumberCompleted();
     writeErrors.addAll(tracker.getWriteErrors());
+    matchedCount += tracker.getMatchedCount();
+    modifiedCount += tracker.getModifiedCount();
+    upsertedIds.addAll(tracker.getUpsertedIds());
+    deletedCount += tracker.getDeletedCount();
   }
 
   public boolean shouldAbort() {
@@ -42,19 +75,27 @@ public class BongoBulkWriteTracker {
     return writeErrors.size() > 0;
   }
 
-  public int getNumberCompleted() {
-    return numberCompleted;
-  }
-
   public int getDeletedCount() {
     return deletedCount;
   }
 
-  public void setNumberCompleted(int numberCompleted) {
-    this.numberCompleted = numberCompleted;
-  }
-
   public List<BongoBulkWriteError> getWriteErrors() {
     return writeErrors;
+  }
+
+  public Map<Integer, byte[]> getInsertedIds() {
+    return insertedIds;
+  }
+
+  public List<BongoIndexedIdOperation> getUpsertedIds() {
+    return upsertedIds;
+  }
+
+  public int getMatchedCount() {
+    return matchedCount;
+  }
+
+  public int getModifiedCount() {
+    return modifiedCount;
   }
 }

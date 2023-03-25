@@ -149,4 +149,23 @@ public class UpdateOneTest {
 
     Assertions.assertNotEquals("something something something", otherCompany.getDescription());
   }
+
+  @Test
+  public void testUpdateOneWithUpsert(@MongoUrl ServerAddress mongoUrl) {
+    var database = bongo.getDatabase("inttest");
+    var collection = database.getCollection("companies", Company.class);
+
+    collection.updateOne(
+        Filters.eq("owner.name", "Bobbyboy").toBsonDocument(),
+        List.of(
+            Updates.set("description", "something something something").toBsonDocument(),
+            Updates.set("reviewScore", 14).toBsonDocument()),
+        true);
+
+    var companies = collection.find(new ReadExecutionSerialStrategy<>()).into(new ArrayList<>());
+    var otherCompany = collection.findOne(Filters.ne("owner.name", "Bobbyboy").toBsonDocument());
+
+    Assertions.assertEquals(4, companies.size());
+    Assertions.assertNotEquals("something something something", otherCompany.getDescription());
+  }
 }

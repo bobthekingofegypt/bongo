@@ -6,17 +6,16 @@ import lombok.ToString;
 @ToString
 public class BongoInsertManyResultAcknowledged implements BongoInsertManyResult {
   private final Map<Integer, byte[]> insertedIds;
-  private BongoBulkWriteTracker tracker;
-
-  public BongoInsertManyResultAcknowledged(Map<Integer, byte[]> insertedIds, BongoBulkWriteTracker tracker) {
+  public BongoInsertManyResultAcknowledged(
+      Map<Integer, byte[]> insertedIds) {
     this.insertedIds = insertedIds;
-    this.tracker = tracker;
+//    this.tracker = tracker;
   }
 
-  @Override
-  public int getDeletedCount() {
-    return tracker.getDeletedCount();
-  }
+//  @Override
+//  public int getDeletedCount() {
+//    return tracker.getDeletedCount();
+//  }
 
   @Override
   public Map<Integer, byte[]> getInsertedIds() {

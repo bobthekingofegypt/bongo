@@ -151,21 +151,37 @@ public class BongoCollection<TModel> {
       BongoInsertManyOptions options) {
     var operations = items.stream().map(BongoInsert::new).toList();
     var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    var result = writeStrategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        options,
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
-    return null;
+    var result =
+        writeStrategy.execute(
+            identifier,
+            bulkWriteSplitter,
+            options,
+            bufferPool,
+            codec,
+            connectionProvider,
+            wireProtocol,
+            writeConcern);
+    return new BongoInsertManyResultAcknowledged(result.getInsertedIds());
   }
 
   public void updateOne(BsonDocument filter, List<BsonDocument> update) {
     var strategy = new WriteExecutionSerialStrategy<TModel>();
     var operations = List.of(new BongoUpdate<TModel>(filter, update, false));
+    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
+    strategy.execute(
+        identifier,
+        bulkWriteSplitter,
+        BongoInsertManyOptions.builder().compress(false).build(),
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol,
+        writeConcern);
+  }
+
+  public void updateOne(BsonDocument filter, List<BsonDocument> update, boolean upsert) {
+    var strategy = new WriteExecutionSerialStrategy<TModel>();
+    var operations = List.of(new BongoUpdate<TModel>(filter, update, false, upsert));
     var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
     strategy.execute(
         identifier,
@@ -198,14 +214,14 @@ public class BongoCollection<TModel> {
     var operations = List.of(new BongoDelete<TModel>(filter, true));
     var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
     strategy.execute(
-            identifier,
-            bulkWriteSplitter,
-            BongoInsertManyOptions.builder().compress(false).build(),
-            bufferPool,
-            codec,
-            connectionProvider,
-            wireProtocol,
-            writeConcern);
+        identifier,
+        bulkWriteSplitter,
+        BongoInsertManyOptions.builder().compress(false).build(),
+        bufferPool,
+        codec,
+        connectionProvider,
+        wireProtocol,
+        writeConcern);
   }
 
   public void updateMany(BsonDocument filter, List<BsonDocument> update) {
@@ -224,37 +240,15 @@ public class BongoCollection<TModel> {
         writeConcern);
   }
 
-  public void bulkWrite(List<? extends BongoWriteOperation<TModel>> operations) {
-    // TODO remove compress override
-    bulkWrite(operations, BongoInsertManyOptions.builder().compress(false).build());
-    //    var strategy = new BulkWriteExecutionSerialStrategy<BongoUpdate>();
-    //    //    var bongoUpdate = new BongoUpdate(filter, update, true);
-    //    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<TModel>(operations, model,
-    // codec);
-    //    strategy.execute(
-    //        identifier,
-    //        bulkWriteSplitter,
-    //        BongoInsertManyOptions.builder().compress(false).build(),
-    //        bufferPool,
-    //        codec,
-    //        connectionProvider,
-    //        wireProtocol,
-    //        writeConcern);
+  public BongoBulkWriteResult bulkWrite(List<? extends BongoWriteOperation<TModel>> operations) {
+    return bulkWrite(operations, BongoInsertManyOptions.builder().build());
   }
 
-  public void bulkWrite(
+  public BongoBulkWriteResult bulkWrite(
       List<? extends BongoWriteOperation<TModel>> operations, BongoInsertManyOptions options) {
-    var strategy = new BulkWriteExecutionSerialStrategy<BongoUpdate>();
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<TModel>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        options,
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+    try (var strategy = new WriteExecutionSerialStrategy<TModel>()) {
+      return this.bulkWrite(operations, options, strategy);
+    }
   }
 
   public BongoBulkWriteResult bulkWrite(

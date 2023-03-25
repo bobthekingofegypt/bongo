@@ -2,6 +2,8 @@ package org.bobstuff.bongo.executionstrategy;
 
 import java.util.*;
 import java.util.concurrent.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BufferDataPool;
@@ -21,10 +23,12 @@ import org.bobstuff.bongo.topology.BongoConnectionProvider;
 @Slf4j
 public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionStrategy<TModel> {
   @SuppressWarnings("argument")
-  private static final DynamicBobBsonBuffer POISON_BUFFER =
-      new DynamicBobBsonBuffer(List.of(new BobBufferBobBsonBuffer(new byte[0])), null);
+  private static final BufferWithType POISON_BUFFER =
+      new BufferWithType(
+          BongoWriteOperationType.Insert,
+          new DynamicBobBsonBuffer(List.of(new BobBufferBobBsonBuffer(new byte[0])), null), new BongoIndexMap());
 
-  private BlockingQueue<DynamicBobBsonBuffer> messageQueue;
+  private BlockingQueue<BufferWithType> messageQueue;
   private ExecutorService executorService;
   private CompletionService<Map<Integer, byte[]>> writersCompletionService;
   private CompletionService<BongoBulkWriteTracker> sendersCompletionService;
@@ -73,22 +77,22 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             var localSocket = connectionProvider.getReadConnection();
             var tracker = new BongoBulkWriteTracker(options.isOrdered());
             while (true) {
-              DynamicBobBsonBuffer buffer;
+              BufferWithType bufferWithType;
               try {
-                buffer = messageQueue.take();
+                bufferWithType = messageQueue.take();
               } catch (InterruptedException e) {
                 throw new RuntimeException(e);
               }
 
-              if (buffer == POISON_BUFFER) {
+              if (bufferWithType == POISON_BUFFER) {
                 break;
               }
 
-              for (BobBsonBuffer b : buffer.getBuffers()) {
+              for (BobBsonBuffer b : bufferWithType.getBuffer().getBuffers()) {
                 localSocket.write(b);
               }
 
-              buffer.release();
+              bufferWithType.getBuffer().release();
 
               var response =
                   wireProtocol.readServerResponse(
@@ -106,7 +110,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
               // TODO handle failure here.  If there is a command failure or a writeconcern failure
               // should we abort all?
 
-//              tracker.addResponse(responsePayload);
+              tracker.addResponse(
+                  bufferWithType.getType(), responsePayload, Collections.emptyMap(), bufferWithType.getIndexMap());
             }
 
             localSocket.release();
@@ -117,6 +122,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
 
     // TODO fork logic for 1-1 ordered concurrent
 
+//    System.out.println("+++++++++++++");
     var allIds = new HashMap<Integer, byte[]>();
 
     if (writers == 1 && senders == 1 && options.isOrdered()) {
@@ -133,7 +139,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
           socket,
           allIds);
     } else {
-      var insertsQueue = new ConcurrentLinkedQueue<BongoWriteOperation<TModel>>();
+//      System.out.println("+++++++++++++ 2");
+      var insertsQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Insert, insertsQueue);
       if (!insertsQueue.isEmpty()) {
         final var inserts =
@@ -151,7 +158,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             allIds);
       }
 
-      var updatesQueue = new ConcurrentLinkedQueue<BongoWriteOperation<TModel>>();
+//      System.out.println("+++++++++++++ 3");
+      var updatesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Update, updatesQueue);
       if (!updatesQueue.isEmpty()) {
         final var updates =
@@ -180,7 +188,9 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       throw new RuntimeException(e);
     }
 
-    var combinedTracker = new BongoBulkWriteTracker(options.isOrdered());
+//    System.out.println("$$$%%%%%%%%%%%%%%%%%%");
+    allIds.putAll(splitter.getIds());
+    var combinedTracker = new BongoBulkWriteTracker(options.isOrdered(), allIds);
     var done = 0;
     while (done < senders) {
       try {
@@ -193,11 +203,12 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       done += 1;
     }
 
+    socket.release();
+
     if (combinedTracker.hasErrors()) {
       throw new BongoBulkWriteException(combinedTracker.getWriteErrors());
     }
 
-    socket.release();
     if (writeConcern.isAcknowledged()) {
       return new BongoBulkWriteResultAcknowledged(allIds, combinedTracker);
     }
@@ -217,14 +228,17 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       writersCompletionService.submit(
           () -> {
             while (splitter.hasMore()) {
+              var type = splitter.nextType();
               var request =
-                  new BongoWriteRequest(
-                      splitter.nextType(), identifier, writeConcern, options.isOrdered());
+                  new BongoWriteRequest(type, identifier, writeConcern, options.isOrdered());
+
+              var indexMap = new BongoIndexMap();
 
               var payload =
                   BongoPayloadTemp.<TModel>builder()
-                      .identifier(splitter.nextType().getPayload())
+                      .identifier(type.getPayload())
                       .items(splitter)
+                      .indexMap(indexMap)
                       .build();
 
               var requestId = socket.getNextRequestId();
@@ -238,11 +252,10 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
                       payload,
                       requestId);
 
-              messageQueue.put(buffer);
+              messageQueue.put(new BufferWithType(type, buffer, indexMap));
             }
 
-            //            return splitter.getIds();
-            return Collections.emptyMap();
+            return splitter.getIds();
           });
     }
 
@@ -250,13 +263,16 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
     while (done < writers) {
       try {
         var ids = writersCompletionService.take().get();
-        allIds.putAll(ids);
+//        allIds.putAll(ids);
       } catch (InterruptedException | ExecutionException e) {
+//        System.out.println("WTF");
         throw new RuntimeException(e);
       }
 
       done += 1;
     }
+
+    allIds.putAll(splitter.getIds());
   }
 
   public void close() {
@@ -269,5 +285,13 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   //  @Override
   public boolean isClosed() {
     return closed;
+  }
+
+  @Data
+  @AllArgsConstructor
+  public static class BufferWithType {
+    private BongoWriteOperationType type;
+    private DynamicBobBsonBuffer buffer;
+    private BongoIndexMap indexMap;
   }
 }

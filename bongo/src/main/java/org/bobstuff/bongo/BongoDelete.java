@@ -5,8 +5,6 @@ import org.bobstuff.bobbson.annotations.CompiledBson;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.List;
-
 @CompiledBson
 public class BongoDelete<TModel> implements BongoWriteOperation<TModel> {
   @BsonAttribute("q")
@@ -14,9 +12,7 @@ public class BongoDelete<TModel> implements BongoWriteOperation<TModel> {
 
   private int limit;
 
-  public BongoDelete() {
-
-  }
+  public BongoDelete() {}
 
   public BongoDelete(BsonDocument filter, boolean multiple) {
     this.filter = filter;
@@ -40,13 +36,13 @@ public class BongoDelete<TModel> implements BongoWriteOperation<TModel> {
   }
 
   //  public boolean isMultiple() {
-//    return multiple;
-//  }
-//
-//  public void setMultiple(boolean multiple) {
-//    this.multiple = multiple;
-//  }
-//
+  //    return multiple;
+  //  }
+  //
+  //  public void setMultiple(boolean multiple) {
+  //    this.multiple = multiple;
+  //  }
+  //
   @Override
   public BongoWriteOperationType getType() {
     return BongoWriteOperationType.Delete;

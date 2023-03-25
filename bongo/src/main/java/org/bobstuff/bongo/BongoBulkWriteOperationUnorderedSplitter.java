@@ -2,6 +2,7 @@ package org.bobstuff.bongo;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.writer.BsonWriter;
@@ -10,7 +11,7 @@ import org.bobstuff.bongo.exception.BongoException;
 
 public class BongoBulkWriteOperationUnorderedSplitter<TModel>
     implements BongoBulkOperationSplitter<TModel> {
-  private ConcurrentLinkedQueue<BongoWriteOperation<TModel>> items;
+  private ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>> items;
   BongoCodec codec;
   private BongoWriteOperationType currentType;
 
@@ -18,10 +19,10 @@ public class BongoBulkWriteOperationUnorderedSplitter<TModel>
   private Map<Integer, byte[]> ids;
 
   public BongoBulkWriteOperationUnorderedSplitter(
-      ConcurrentLinkedQueue<BongoWriteOperation<TModel>> items,
+      ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>> items,
       Class<TModel> model,
       BongoCodec codec) {
-    this.ids = new HashMap<>(items.size());
+    this.ids = new ConcurrentHashMap<>(items.size());
     this.codec = codec;
     this.model = model;
     this.items = items;
@@ -30,19 +31,26 @@ public class BongoBulkWriteOperationUnorderedSplitter<TModel>
       throw new BongoException(
           "Items passed to BongoBulkWriteOperationUnorderedSplitter cannot be empty");
     }
-    this.currentType = item.getType();
+    this.currentType = item.getOperation().getType();
   }
 
   private void writeUpdate(BsonWriter writer, BongoUpdate<TModel> item) {
     codec.converter(BongoUpdate.class).write(writer, item);
   }
 
-  private void writeInsert(BsonWriter writer, BongoInsert<TModel> insert) {
+  private void writeInsert(BsonWriter writer, BongoInsert<TModel> insert, int index) {
     var item = insert.getItem();
     if (item == null) {
       throw new BongoException("item cannot be null in an insert request");
     }
     codec.converter(model).write(writer, item);
+
+    var writerId = (BongoBsonWriterId) writer;
+    var writtenId = writerId.getWrittenId();
+    if (writtenId != null) {
+      ids.put(index, writtenId);
+      writerId.reset();
+    }
   }
 
   private void writeDelete(BsonWriter writer, BongoDelete<TModel> item) {
@@ -63,20 +71,25 @@ public class BongoBulkWriteOperationUnorderedSplitter<TModel>
     return currentType;
   }
 
-  public void write(BobBsonBuffer buffer) {
-    var writer = new BsonWriter(buffer);
+  public void write(BobBsonBuffer buffer, BongoIndexMap indexMap) {
+    var writer =
+        switch (currentType) {
+          case Insert -> new BongoBsonWriterId(buffer);
+          default -> new BsonWriter(buffer);
+        };
     var item = items.poll();
     while (item != null) {
       var start = buffer.getTail();
-      var operationType = item.getType();
+      var operation = item.getOperation();
+      var operationType = operation.getType();
       if (operationType != currentType) {
         throw new BongoException("UnorderedSplitter should only contain items of a single type");
       }
 
       switch (operationType) {
-        case Update -> writeUpdate(writer, (BongoUpdate<TModel>) item);
-        case Insert -> writeInsert(writer, (BongoInsert<TModel>) item);
-        case Delete -> writeDelete(writer, (BongoDelete<TModel>) item);
+        case Update -> writeUpdate(writer, (BongoUpdate<TModel>) operation);
+        case Insert -> writeInsert(writer, (BongoInsert<TModel>) operation, item.getIndex());
+        case Delete -> writeDelete(writer, (BongoDelete<TModel>) operation);
       }
 
       var end = buffer.getTail();
@@ -87,6 +100,7 @@ public class BongoBulkWriteOperationUnorderedSplitter<TModel>
         break;
       }
 
+      indexMap.add(item.getIndex());
       item = items.poll();
       if (item == null) {
         break;
@@ -100,7 +114,13 @@ public class BongoBulkWriteOperationUnorderedSplitter<TModel>
 
   @Override
   public void drainToQueue(
-      BongoWriteOperationType type, ConcurrentLinkedQueue<BongoWriteOperation<TModel>> queue) {
+      BongoWriteOperationType type,
+      ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>> queue) {
     throw new UnsupportedOperationException("UnorderedSplitter doesn't support drain to queue");
+  }
+
+  @Override
+  public Map<Integer, byte[]> getIds() {
+    return ids;
   }
 }

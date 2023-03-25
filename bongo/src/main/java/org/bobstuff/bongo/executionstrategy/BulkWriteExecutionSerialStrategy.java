@@ -35,10 +35,12 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
       var request =
           new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered());
 
+      var indexMap = new BongoIndexMap();
       var payload =
           BongoPayloadTemp.<TModel>builder()
               .identifier(operationType.getPayload())
               .items(splitter)
+                  .indexMap(indexMap)
               .build();
       wireProtocol.sendCommandMessageTemp(
           socket,
@@ -61,7 +63,7 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
         log.trace(responsePayload.toString());
       }
 
-      tracker.addResponse(operationType, responsePayload);
+      tracker.addResponse(operationType, responsePayload, payload.getItems().getIds(), indexMap);
 
       if (responsePayload.getOk() == 0) {
         System.out.println(responsePayload.getErrmsg());
@@ -78,12 +80,15 @@ public class BulkWriteExecutionSerialStrategy<TModel> {
 
     socket.release();
 
-    if (writeConcern.isAcknowledged()) {
-      return new BongoInsertManyResultAcknowledged(Collections.emptyMap(), tracker);
-      // TODO figure this back out
-      //      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
-    }
+    // TODO DELETE THIS CLASS
+
     return new BongoInsertManyResultUnacknowledged();
+//    if (writeConcern.isAcknowledged()) {
+//      return new BongoInsertManyResultAcknowledged(Collections.emptyMap());
+//      // TODO figure this back out
+//      //      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
+//    }
+//    return new BongoInsertManyResultUnacknowledged();
   }
 
   public void close() {}

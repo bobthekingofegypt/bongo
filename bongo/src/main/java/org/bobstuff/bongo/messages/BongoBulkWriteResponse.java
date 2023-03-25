@@ -13,4 +13,6 @@ public class BongoBulkWriteResponse {
   private String errmsg;
   private int code;
   private List<BongoBulkWriteError> writeErrors;
+  private int nModified;
+  private List<BongoIndexedIdOperation> upserted;
 }

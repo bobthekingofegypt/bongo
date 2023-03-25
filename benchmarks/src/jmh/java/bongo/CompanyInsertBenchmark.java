@@ -8,12 +8,11 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.InsertManyOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import com.mongodb.client.model.InsertManyOptions;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.BobBufferPool;
@@ -328,10 +327,10 @@ public class CompanyInsertBenchmark {
   //    state.collection.insertMany(people, state.writeConcurrentStrategy, true);
   //  }
 
-    @Benchmark
-    public void mongo(Blackhole bh, MyMongoClient state) {
-      state.mongoCollection.insertMany(companies, new InsertManyOptions().ordered(false));
-    }
+  @Benchmark
+  public void mongo(Blackhole bh, MyMongoClient state) {
+    state.mongoCollection.insertMany(companies, new InsertManyOptions().ordered(false));
+  }
   //
   //  @Benchmark
   //  public void mongoUnorderedNoack(Blackhole bh, MyMongoClient state) {
@@ -377,15 +376,15 @@ public class CompanyInsertBenchmark {
   //    strategy.close();
   //  }
 
-//  @Benchmark
-//  public void bongo61(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
-//    var strategy = new WriteExecutionConcurrentStrategy<Company>(6, 1);
-//    state.collection.insertMany(
-//        companies,
-//        strategy,
-//        BongoInsertManyOptions.builder().compress(true).ordered(false).build());
-//    strategy.close();
-//  }
+  //  @Benchmark
+  //  public void bongo61(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
+  //    var strategy = new WriteExecutionConcurrentStrategy<Company>(6, 1);
+  //    state.collection.insertMany(
+  //        companies,
+  //        strategy,
+  //        BongoInsertManyOptions.builder().compress(true).ordered(false).build());
+  //    strategy.close();
+  //  }
   //
   //  @Benchmark
   //  public void bongo16(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
