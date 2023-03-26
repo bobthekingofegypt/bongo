@@ -20,39 +20,76 @@ public class WriteStrategyProvider implements ArgumentsProvider {
                     new WriteExecutionSerialStrategy(),
                     BongoInsertManyOptions.builder().ordered(true).compress(false).build()))),
         Arguments.of(
-                Named.named(
-                        "serial-compressed",
-                        new WriteStrategyWrapper(
-                                new WriteExecutionSerialStrategy(),
-                                BongoInsertManyOptions.builder().ordered(true).compress(true).build()))),
+            Named.named(
+                "serial-unordered",
+                new WriteStrategyWrapper(
+                    new WriteExecutionSerialStrategy(),
+                    BongoInsertManyOptions.builder().ordered(false).compress(false).build()))),
+        Arguments.of(
+            Named.named(
+                "serial-compressed",
+                new WriteStrategyWrapper(
+                    new WriteExecutionSerialStrategy(),
+                    BongoInsertManyOptions.builder().ordered(true).compress(true).build()))),
+        Arguments.of(
+            Named.named(
+                "serial-compressed-unordered",
+                new WriteStrategyWrapper(
+                    new WriteExecutionSerialStrategy(),
+                    BongoInsertManyOptions.builder().ordered(false).compress(true).build()))),
         Arguments.of(
             Named.named(
                 "concurrent-low",
                 new WriteStrategyWrapper(
                     new WriteExecutionConcurrentStrategy(1, 1),
                     BongoInsertManyOptions.builder().ordered(true).compress(false).build()))),
-      Arguments.of(
-              Named.named(
-                      "concurrent-low-compressed",
-                      new WriteStrategyWrapper(
-                              new WriteExecutionConcurrentStrategy(1, 1),
-                              BongoInsertManyOptions.builder().ordered(true).compress(true).build()))));
+        Arguments.of(
+            Named.named(
+                "concurrent-low-unordered",
+                new WriteStrategyWrapper(
+                    new WriteExecutionConcurrentStrategy(1, 1),
+                    BongoInsertManyOptions.builder().ordered(false).compress(false).build()))),
+        Arguments.of(
+            Named.named(
+                "concurrent-low-compressed-unordered",
+                new WriteStrategyWrapper(
+                    new WriteExecutionConcurrentStrategy(1, 1),
+                    BongoInsertManyOptions.builder().ordered(false).compress(true).build()))),
+        Arguments.of(
+            Named.named(
+                "concurrent-low-compressed",
+                new WriteStrategyWrapper(
+                    new WriteExecutionConcurrentStrategy(1, 1),
+                    BongoInsertManyOptions.builder().ordered(true).compress(true).build()))),
+        Arguments.of(
+            Named.named(
+                "concurrent-high-unordered",
+                new WriteStrategyWrapper(
+                    new WriteExecutionConcurrentStrategy(3, 3),
+                    BongoInsertManyOptions.builder().ordered(false).compress(false).build()))),
+        Arguments.of(
+            Named.named(
+                "concurrent-high-unordered-compressed",
+                new WriteStrategyWrapper(
+                    new WriteExecutionConcurrentStrategy(3, 3),
+                    BongoInsertManyOptions.builder().ordered(false).compress(true).build()))));
   }
 
-  public class WriteStrategyWrapper {
-    private WriteExecutionStrategy strategy;
+  public static class WriteStrategyWrapper<TModel> {
+    private WriteExecutionStrategy<TModel> strategy;
     private BongoInsertManyOptions options;
 
-    public WriteStrategyWrapper(WriteExecutionStrategy strategy, BongoInsertManyOptions options) {
+    public WriteStrategyWrapper(
+        WriteExecutionStrategy<TModel> strategy, BongoInsertManyOptions options) {
       this.strategy = strategy;
       this.options = options;
     }
 
-    public WriteExecutionStrategy getStrategy() {
+    public WriteExecutionStrategy<TModel> getStrategy() {
       return strategy;
     }
 
-    public void setStrategy(WriteExecutionStrategy strategy) {
+    public void setStrategy(WriteExecutionStrategy<TModel> strategy) {
       this.strategy = strategy;
     }
 

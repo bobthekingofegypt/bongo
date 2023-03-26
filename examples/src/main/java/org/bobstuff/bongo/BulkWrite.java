@@ -55,7 +55,7 @@ public class BulkWrite {
 
     Faker faker = new Faker(new Random(23));
     var companies = new ArrayList<BongoWriteOperation<Company>>();
-    for (var i = 0; i < 9000; i += 1) {
+    for (var i = 0; i < 90000; i += 1) {
       var company = CompanyDataGenerator.company(faker);
       companies.add(new BongoInsert<>(company));
       if (i % 4 == 0) {
@@ -73,7 +73,7 @@ public class BulkWrite {
       try {
         collection.bulkWrite(
             companies,
-            BongoInsertManyOptions.builder().ordered(false).compress(false).build(),
+            BongoInsertManyOptions.builder().ordered(true).compress(false).build(),
             strategy);
       } catch (BongoBulkWriteException e) {
         System.out.println(e.getWriteErrors().size());

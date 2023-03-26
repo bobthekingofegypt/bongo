@@ -14,7 +14,6 @@ import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.exception.BongoSocketReadException;
 import org.bobstuff.bongo.messages.BongoResponseHeader;
-import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -169,13 +168,13 @@ public class WireProtocol {
           "Response was null from the server " + socket.getServerAddress());
     }
 
-//    messageBuffer.setHead(5);
-//    var readerDebug = new BsonReader(messageBuffer);
-//    var responseDebug = codec.decode(BsonDocument.class, readerDebug);
-//    if (responseDebug != null) {
-//      System.out.println("*********************");
-//      System.out.println(responseDebug);
-//    }
+    //        messageBuffer.setHead(5);
+    //        var readerDebug = new BsonReader(messageBuffer);
+    //        var responseDebug = codec.decode(BsonDocument.class, readerDebug);
+    //        if (responseDebug != null) {
+    //          System.out.println("*********************");
+    //          System.out.println(responseDebug);
+    //        }
 
     bufferPool.recycle(messageBuffer);
     return new Response<>(responseHeader, flagBits, response);

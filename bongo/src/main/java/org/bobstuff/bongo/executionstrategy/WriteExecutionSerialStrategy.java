@@ -1,6 +1,6 @@
 package org.bobstuff.bongo.executionstrategy;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +33,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
         BongoCompressor.shouldCompress(socket.getCompressor(), options.getCompress());
 
     var tracker = new BongoBulkWriteTracker(options.isOrdered());
+    var allIds = new HashMap<Integer, byte[]>();
 
     if (options.isOrdered()) {
       writeBulkRequests(
@@ -45,7 +46,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
           socket,
           codec,
           tracker,
-          null);
+          allIds);
     } else {
       var insertsQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Insert, insertsQueue);
@@ -63,7 +64,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
             socket,
             codec,
             tracker,
-            null);
+            allIds);
       }
       var updatesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Update, updatesQueue);
@@ -81,7 +82,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
             socket,
             codec,
             tracker,
-            null);
+            allIds);
       }
       var deletesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Delete, deletesQueue);
@@ -99,7 +100,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
             socket,
             codec,
             tracker,
-            null);
+            allIds);
       }
     }
 
@@ -110,7 +111,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
     }
 
     if (writeConcern.isAcknowledged()) {
-      return new BongoBulkWriteResultAcknowledged(Collections.emptyMap(), tracker);
+      return new BongoBulkWriteResultAcknowledged(allIds, tracker);
       // TODO figure this back out
       //      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
     }
@@ -138,7 +139,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
           BongoPayloadTemp.<TModel>builder()
               .identifier(operationType.getPayload())
               .items(splitter)
-                  .indexMap(indexMap)
+              .indexMap(indexMap)
               .build();
       wireProtocol.sendCommandMessageTemp(
           socket,
@@ -171,6 +172,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
         throw new BongoBulkWriteException(tracker.getWriteErrors());
       }
     }
+    allIds.putAll(splitter.getIds());
   }
 
   public void close() {}

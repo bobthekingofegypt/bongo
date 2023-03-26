@@ -5,15 +5,22 @@ import de.flapdoodle.embed.mongo.commands.ServerAddress;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.mongo.transitions.Mongod;
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
+import de.flapdoodle.embed.process.io.ProcessOutput;
+import de.flapdoodle.embed.process.io.Processors;
+import de.flapdoodle.embed.process.io.Slf4jLevel;
 import de.flapdoodle.reverse.StateID;
+import de.flapdoodle.reverse.Transition;
 import de.flapdoodle.reverse.TransitionWalker;
 import de.flapdoodle.reverse.transitions.Start;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MongoDbResolver implements ParameterResolver, AfterEachCallback {
+  private static final Logger logger = LoggerFactory.getLogger(MongoDbResolver.class);
   private TransitionWalker.ReachedState<RunningMongodProcess> process;
   private ServerAddress mongoUrl;
 
@@ -38,8 +45,22 @@ public class MongoDbResolver implements ParameterResolver, AfterEachCallback {
       ParameterContext parameterContext, ExtensionContext extensionContext) {
     if (process == null) {
       try {
+        Mongod mongod =
+            new Mongod() {
+              @Override
+              public Transition<ProcessOutput> processOutput() {
+                return Start.to(ProcessOutput.class)
+                    .initializedWith(
+                        ProcessOutput.builder()
+                            .output(Processors.logTo(logger, Slf4jLevel.TRACE))
+                            .error(Processors.logTo(logger, Slf4jLevel.ERROR))
+                            .commands(Processors.logTo(logger, Slf4jLevel.TRACE))
+                            .build())
+                    .withTransitionLabel("no output");
+              }
+            };
         process =
-            Mongod.instance()
+            mongod
                 .transitions(Version.Main.V6_0)
                 .replace(
                     Start.to(MongodArguments.class)

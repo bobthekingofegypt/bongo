@@ -16,6 +16,8 @@ public class BongoBulkWriteTracker {
   private List<BongoIndexedIdOperation> upsertedIds;
   private int matchedCount;
   private int modifiedCount;
+
+  private int insertedCount;
   private boolean ordered;
 
   public BongoBulkWriteTracker(boolean ordered) {
@@ -56,7 +58,11 @@ public class BongoBulkWriteTracker {
       }
     }
 
-//    this.insertedIds.putAll(insertedIds);
+    if (operationType == BongoWriteOperationType.Insert) {
+      insertedCount += response.getN();
+    }
+
+    //    this.insertedIds.putAll(insertedIds);
   }
 
   public void mergeTracker(BongoBulkWriteTracker tracker) {
@@ -65,6 +71,7 @@ public class BongoBulkWriteTracker {
     modifiedCount += tracker.getModifiedCount();
     upsertedIds.addAll(tracker.getUpsertedIds());
     deletedCount += tracker.getDeletedCount();
+    insertedCount += tracker.getInsertedCount();
   }
 
   public boolean shouldAbort() {
@@ -97,5 +104,9 @@ public class BongoBulkWriteTracker {
 
   public int getModifiedCount() {
     return modifiedCount;
+  }
+
+  public int getInsertedCount() {
+    return insertedCount;
   }
 }

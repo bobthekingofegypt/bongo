@@ -23,7 +23,7 @@ public class BongoBulkWriteResultAcknowledged implements BongoBulkWriteResult {
 
   @Override
   public Map<Integer, byte[]> getInsertedIds() {
-    return tracker.getInsertedIds();
+    return insertedIds;
   }
 
   @Override
@@ -33,7 +33,7 @@ public class BongoBulkWriteResultAcknowledged implements BongoBulkWriteResult {
 
   @Override
   public int getInsertedCount() {
-    return tracker.getInsertedIds().size();
+    return tracker.getInsertedCount();
   }
 
   @Override

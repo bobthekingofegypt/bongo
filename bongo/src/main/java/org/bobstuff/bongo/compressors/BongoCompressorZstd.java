@@ -6,6 +6,16 @@ import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.exception.BongoException;
 
 public class BongoCompressorZstd implements BongoCompressor {
+  private int compressionLevel;
+
+  public BongoCompressorZstd() {
+    this(Zstd.maxCompressionLevel());
+  }
+
+  public BongoCompressorZstd(int level) {
+    compressionLevel = level;
+  }
+
   @Override
   public byte getId() {
     return 3;
@@ -34,9 +44,7 @@ public class BongoCompressorZstd implements BongoCompressor {
 
     try {
       int compressedSize =
-          (int)
-              Zstd.compressByteArray(
-                  out, 0, out.length, data, offset, length, Zstd.maxCompressionLevel());
+          (int) Zstd.compressByteArray(out, 0, out.length, data, offset, length, compressionLevel);
       outBuffer.setTail(compressedSize);
     } catch (RuntimeException e) {
       throw new BongoException("Unexpected exception compressing with zstd", e);

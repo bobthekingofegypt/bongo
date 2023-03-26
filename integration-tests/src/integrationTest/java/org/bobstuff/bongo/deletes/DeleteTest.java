@@ -70,22 +70,24 @@ public class DeleteTest {
   }
 
   @Test
-  public void testDeleteOne(@MongoUrl ServerAddress mongoUrl) {
+  public void testDeleteOne() {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
-    collection.deleteOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
+    var result = collection.deleteOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
 
+    Assertions.assertEquals(1, result.getDeletedCount());
     var count = collection.count();
     Assertions.assertEquals(2, count);
   }
 
   @Test
-  public void testDeleteMany(@MongoUrl ServerAddress mongoUrl) {
+  public void testDeleteMany() {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
-    collection.deleteMany(Filters.ne("name", null).toBsonDocument());
+    var result = collection.deleteMany(Filters.ne("name", null).toBsonDocument());
+    Assertions.assertEquals(3, result.getDeletedCount());
 
     var count = collection.count();
     Assertions.assertEquals(0, count);

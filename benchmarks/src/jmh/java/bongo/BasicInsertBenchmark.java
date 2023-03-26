@@ -246,9 +246,8 @@ public class BasicInsertBenchmark {
   @Benchmark
   public void bongoConc(Blackhole bh, MyBongoClient state, MyMongoClient mongo) {
     var strategy = new WriteExecutionConcurrentStrategy<Person>(3, 5);
-    var result = state
-        .collection
-        .insertMany(
+    var result =
+        state.collection.insertMany(
             people,
             strategy,
             BongoInsertManyOptions.builder().ordered(false).compress(false).build());

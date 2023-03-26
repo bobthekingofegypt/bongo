@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.codec.BongoCodec;
+import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.executionstrategy.*;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 import org.bson.BsonDocument;
@@ -124,10 +125,12 @@ public class BongoCollection<TModel> {
 
   public BongoInsertOneResult insertOne(TModel item) {
     var result = this.insertMany(List.of(item));
-    if (writeConcern.isAcknowledged()) {
-      return new BongoInsertOneResultAcknowledged(result.getInsertedIds().get(0));
-    }
-    return new BongoInsertOneResultUnacknowledged();
+    return configureInsertOneResult(result);
+  }
+
+  public BongoInsertOneResult insertOne(TModel item, WriteExecutionStrategy<TModel> strategy) {
+    var result = this.insertMany(List.of(item), strategy);
+    return configureInsertOneResult(result);
   }
 
   public BongoInsertManyResult insertMany(List<TModel> items) {
@@ -161,83 +164,93 @@ public class BongoCollection<TModel> {
             connectionProvider,
             wireProtocol,
             writeConcern);
-    return new BongoInsertManyResultAcknowledged(result.getInsertedIds());
+
+    return configureInsertManyResult(result);
   }
 
-  public void updateOne(BsonDocument filter, List<BsonDocument> update) {
-    var strategy = new WriteExecutionSerialStrategy<TModel>();
-    var operations = List.of(new BongoUpdate<TModel>(filter, update, false));
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        BongoInsertManyOptions.builder().compress(false).build(),
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+  private BongoInsertManyResult configureInsertManyResult(BongoBulkWriteResult bulkWriteResult) {
+    if (bulkWriteResult.isAcknowledged()) {
+      return new BongoInsertManyResultAcknowledged((bulkWriteResult.getInsertedIds()));
+    }
+    return new BongoInsertManyResultUnacknowledged();
   }
 
-  public void updateOne(BsonDocument filter, List<BsonDocument> update, boolean upsert) {
-    var strategy = new WriteExecutionSerialStrategy<TModel>();
+  private BongoInsertOneResult configureInsertOneResult(
+      BongoInsertManyResult bulkInsertManyResult) {
+    if (bulkInsertManyResult.isAcknowledged()) {
+      if (bulkInsertManyResult.getInsertedIds().isEmpty()) {
+        // TODO add separate exception types for write/concern/command etc
+        throw new BongoException("Failed to insert model");
+      }
+      return new BongoInsertOneResultAcknowledged(bulkInsertManyResult.getInsertedIds().get(0));
+    }
+    return new BongoInsertOneResultUnacknowledged();
+  }
+
+  private BongoUpdateResult configureUpdateResult(BongoBulkWriteResult bulkResult) {
+    if (bulkResult.isAcknowledged()) {
+      return new BongoUpdateResultAcknowledged(bulkResult);
+    }
+    return new BongoUpdateResultUnacknowledged();
+  }
+  private BongoDeleteResult configureDeleteResult(BongoBulkWriteResult bulkResult) {
+    if (bulkResult.isAcknowledged()) {
+      return new BongoDeleteResultAcknowledged(bulkResult);
+    }
+    return new BongoDeleteResultUnacknowledged();
+  }
+
+  public BongoUpdateResult updateOne(BsonDocument filter, List<BsonDocument> update) {
+    return updateOne(filter, update, false);
+  }
+
+  public BongoUpdateResult updateOne(
+      BsonDocument filter, List<BsonDocument> update, boolean upsert) {
+    try (var strategy = new WriteExecutionSerialStrategy<TModel>()) {
+      return updateOne(filter, update, upsert, strategy);
+    }
+  }
+
+  public BongoUpdateResult updateOne(
+      BsonDocument filter,
+      List<BsonDocument> update,
+      boolean upsert,
+      WriteExecutionStrategy<TModel> strategy) {
     var operations = List.of(new BongoUpdate<TModel>(filter, update, false, upsert));
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        BongoInsertManyOptions.builder().compress(false).build(),
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+    var result = bulkWrite(operations, BongoInsertManyOptions.builder().build(), strategy);
+    return configureUpdateResult(result);
   }
 
-  public void deleteOne(BsonDocument filter) {
-    var strategy = new WriteExecutionSerialStrategy<TModel>();
-    var operations = List.of(new BongoDelete<TModel>(filter, false));
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        BongoInsertManyOptions.builder().compress(false).build(),
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+  public BongoUpdateResult updateMany(BsonDocument filter, List<BsonDocument> update) {
+    return updateMany(filter, update, false);
+  }
+  public BongoUpdateResult updateMany(BsonDocument filter, List<BsonDocument> update, boolean upsert) {
+    try (var strategy = new WriteExecutionSerialStrategy<TModel>()) {
+      return updateMany(filter, update, upsert, strategy);
+    }
   }
 
-  public void deleteMany(BsonDocument filter) {
-    var strategy = new WriteExecutionSerialStrategy<TModel>();
-    var operations = List.of(new BongoDelete<TModel>(filter, true));
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        BongoInsertManyOptions.builder().compress(false).build(),
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+  public BongoUpdateResult updateMany(
+      BsonDocument filter, List<BsonDocument> update, boolean upsert, WriteExecutionStrategy<TModel> strategy) {
+    List<BongoWriteOperation<TModel>> operations = List.of(new BongoUpdate<>(filter, update, true, upsert));
+    var result = bulkWrite(operations, BongoInsertManyOptions.builder().build(), strategy);
+    return configureUpdateResult(result);
   }
 
-  public void updateMany(BsonDocument filter, List<BsonDocument> update) {
-    var strategy = new WriteExecutionSerialStrategy<TModel>();
-    List<BongoWriteOperation<TModel>> operations =
-        List.of(new BongoUpdate<TModel>(filter, update, true));
-    var bulkWriteSplitter = new BongoBulkWriteOperationSplitter<>(operations, model, codec);
-    strategy.execute(
-        identifier,
-        bulkWriteSplitter,
-        BongoInsertManyOptions.builder().compress(false).build(),
-        bufferPool,
-        codec,
-        connectionProvider,
-        wireProtocol,
-        writeConcern);
+  public BongoDeleteResult deleteOne(BsonDocument filter) {
+    try (var strategy = new WriteExecutionSerialStrategy<TModel>()) {
+      var operations = List.of(new BongoDelete<TModel>(filter, false));
+      var result = bulkWrite(operations, BongoInsertManyOptions.builder().build(), strategy);
+      return configureDeleteResult(result);
+    }
+  }
+
+  public BongoDeleteResult deleteMany(BsonDocument filter) {
+    try (var strategy = new WriteExecutionSerialStrategy<TModel>()) {
+      var operations = List.of(new BongoDelete<TModel>(filter, true));
+      var result = bulkWrite(operations, BongoInsertManyOptions.builder().build(), strategy);
+      return configureDeleteResult(result);
+    }
   }
 
   public BongoBulkWriteResult bulkWrite(List<? extends BongoWriteOperation<TModel>> operations) {

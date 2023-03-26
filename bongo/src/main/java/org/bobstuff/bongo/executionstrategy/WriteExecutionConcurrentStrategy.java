@@ -26,7 +26,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   private static final BufferWithType POISON_BUFFER =
       new BufferWithType(
           BongoWriteOperationType.Insert,
-          new DynamicBobBsonBuffer(List.of(new BobBufferBobBsonBuffer(new byte[0])), null), new BongoIndexMap());
+          new DynamicBobBsonBuffer(List.of(new BobBufferBobBsonBuffer(new byte[0])), null),
+          new BongoIndexMap());
 
   private BlockingQueue<BufferWithType> messageQueue;
   private ExecutorService executorService;
@@ -111,7 +112,10 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
               // should we abort all?
 
               tracker.addResponse(
-                  bufferWithType.getType(), responsePayload, Collections.emptyMap(), bufferWithType.getIndexMap());
+                  bufferWithType.getType(),
+                  responsePayload,
+                  Collections.emptyMap(),
+                  bufferWithType.getIndexMap());
             }
 
             localSocket.release();
@@ -122,7 +126,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
 
     // TODO fork logic for 1-1 ordered concurrent
 
-//    System.out.println("+++++++++++++");
+    //    System.out.println("+++++++++++++");
     var allIds = new HashMap<Integer, byte[]>();
 
     if (writers == 1 && senders == 1 && options.isOrdered()) {
@@ -139,9 +143,9 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
           socket,
           allIds);
     } else {
-//      System.out.println("+++++++++++++ 2");
       var insertsQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Insert, insertsQueue);
+      //      System.out.println("+++++++++++++ inserts " + insertsQueue.size());
       if (!insertsQueue.isEmpty()) {
         final var inserts =
             new BongoBulkWriteOperationUnorderedSplitter<>(
@@ -158,15 +162,34 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             allIds);
       }
 
-//      System.out.println("+++++++++++++ 3");
+      //      System.out.println("+++++++++++++ 3");
       var updatesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
       splitter.drainToQueue(BongoWriteOperationType.Update, updatesQueue);
+      //      System.out.println("+++++++++++++ updates " + updatesQueue.size());
       if (!updatesQueue.isEmpty()) {
         final var updates =
             new BongoBulkWriteOperationUnorderedSplitter<>(
                 updatesQueue, splitter.getModel(), codec);
         writeBulkRequests(
             updates,
+            identifier,
+            writeConcern,
+            requestCompression,
+            options,
+            wireProtocol,
+            socket,
+            allIds);
+      }
+
+      var deletesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
+      splitter.drainToQueue(BongoWriteOperationType.Delete, deletesQueue);
+      //      System.out.println("+++++++++++++ deletes " + deletesQueue.size());
+      if (!deletesQueue.isEmpty()) {
+        final var deletes =
+            new BongoBulkWriteOperationUnorderedSplitter<>(
+                deletesQueue, splitter.getModel(), codec);
+        writeBulkRequests(
+            deletes,
             identifier,
             writeConcern,
             requestCompression,
@@ -188,7 +211,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       throw new RuntimeException(e);
     }
 
-//    System.out.println("$$$%%%%%%%%%%%%%%%%%%");
+    //    System.out.println("$$$%%%%%%%%%%%%%%%%%%");
     allIds.putAll(splitter.getIds());
     var combinedTracker = new BongoBulkWriteTracker(options.isOrdered(), allIds);
     var done = 0;
@@ -263,9 +286,9 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
     while (done < writers) {
       try {
         var ids = writersCompletionService.take().get();
-//        allIds.putAll(ids);
+        //        allIds.putAll(ids);
       } catch (InterruptedException | ExecutionException e) {
-//        System.out.println("WTF");
+        //        System.out.println("WTF");
         throw new RuntimeException(e);
       }
 
@@ -285,6 +308,14 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
   //  @Override
   public boolean isClosed() {
     return closed;
+  }
+
+  public int getWriters() {
+    return writers;
+  }
+
+  public int getSenders() {
+    return senders;
   }
 
   @Data

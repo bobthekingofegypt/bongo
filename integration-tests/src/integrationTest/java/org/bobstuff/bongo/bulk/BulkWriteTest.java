@@ -16,7 +16,6 @@ import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
 import org.bobstuff.bongo.executionstrategy.WriteExecutionConcurrentStrategy;
-import org.bobstuff.bongo.executionstrategy.WriteExecutionStrategy;
 import org.bobstuff.bongo.models.company.Company;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
@@ -67,6 +66,7 @@ public class BulkWriteTest {
 
     entries = List.of(data, data2, data3);
 
+    System.out.println("Inserting first 3");
     collection.insertMany(entries);
   }
 
@@ -75,8 +75,9 @@ public class BulkWriteTest {
     bongo.close();
   }
 
-  @Test
-  public void testAggregate(@MongoUrl ServerAddress mongoUrl) {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
+  public void testBulkWrite(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -88,7 +89,7 @@ public class BulkWriteTest {
             false));
     operations.add(new BongoInsert<Company>(CompanyDataGenerator.company(faker)));
 
-    collection.bulkWrite(operations);
+    collection.bulkWrite(operations, strategyWrapper.getOptions(), strategyWrapper.getStrategy());
 
     var count = collection.count();
     Assertions.assertEquals(4, count);
@@ -96,8 +97,9 @@ public class BulkWriteTest {
     Assertions.assertNotNull(entry);
   }
 
-  @Test
-  public void testManyOperationsAggregate(@MongoUrl ServerAddress mongoUrl) {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
+  public void testManyOperationsBulkWrite(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -122,112 +124,9 @@ public class BulkWriteTest {
             List.of(Updates.set("name", "some other update").toBsonDocument()),
             false));
 
-    collection.bulkWrite(operations);
+    collection.bulkWrite(operations, strategyWrapper.getOptions(), strategyWrapper.getStrategy());
 
     var count = collection.count();
-    Assertions.assertEquals(7, count);
-    var entry = collection.findOne(Filters.eq("name", "nothing happens").toBsonDocument());
-    Assertions.assertNotNull(entry);
-    var someOtherEntry =
-        collection.findOne(Filters.eq("name", "some other update").toBsonDocument());
-    Assertions.assertNotNull(someOtherEntry);
-    var insertOneEntry =
-        collection.findOne(Filters.eq("name", insertOne.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertOneEntry);
-    var insertTwoEntry =
-        collection.findOne(Filters.eq("name", insertTwo.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertTwoEntry);
-    var insertThreeEntry =
-        collection.findOne(Filters.eq("name", insertThree.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertThreeEntry);
-  }
-
-  @Test
-  public void testManyOperationsAggregateConcurrent(@MongoUrl ServerAddress mongoUrl) {
-    var database = bongo.getDatabase("inttest");
-    var collection = database.getCollection("companies", Company.class);
-
-    var insertOne = CompanyDataGenerator.company(faker);
-    var insertTwo = CompanyDataGenerator.company(faker);
-    var insertThree = CompanyDataGenerator.company(faker);
-    var insertFour = CompanyDataGenerator.company(faker);
-
-    var operations = new ArrayList<BongoWriteOperation<Company>>();
-    operations.add(
-        new BongoUpdate<>(
-            Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
-            List.of(Updates.set("name", "nothing happens").toBsonDocument()),
-            false));
-    operations.add(new BongoInsert<>(insertOne));
-    operations.add(new BongoInsert<>(insertTwo));
-    operations.add(new BongoInsert<>(insertThree));
-    operations.add(new BongoInsert<>(insertFour));
-    operations.add(
-        new BongoUpdate<>(
-            Filters.eq("name", entries.get(1).getName()).toBsonDocument(),
-            List.of(Updates.set("name", "some other update").toBsonDocument()),
-            false));
-
-    try (var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1)) {
-      collection.bulkWrite(
-          operations, BongoInsertManyOptions.builder().compress(false).build(), strategy);
-    }
-
-    var count = collection.count();
-    Assertions.assertEquals(7, count);
-    var entry = collection.findOne(Filters.eq("name", "nothing happens").toBsonDocument());
-    Assertions.assertNotNull(entry);
-    var someOtherEntry =
-        collection.findOne(Filters.eq("name", "some other update").toBsonDocument());
-    Assertions.assertNotNull(someOtherEntry);
-    var insertOneEntry =
-        collection.findOne(Filters.eq("name", insertOne.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertOneEntry);
-    var insertTwoEntry =
-        collection.findOne(Filters.eq("name", insertTwo.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertTwoEntry);
-    var insertThreeEntry =
-        collection.findOne(Filters.eq("name", insertThree.getName()).toBsonDocument());
-    Assertions.assertNotNull(insertThreeEntry);
-  }
-
-  @Test
-  public void testManyOperationsAggregateUnordered(@MongoUrl ServerAddress mongoUrl) {
-    var database = bongo.getDatabase("inttest");
-    var collection = database.getCollection("companies", Company.class);
-
-    var insertOne = CompanyDataGenerator.company(faker);
-    var insertTwo = CompanyDataGenerator.company(faker);
-    var insertThree = CompanyDataGenerator.company(faker);
-    var insertFour = CompanyDataGenerator.company(faker);
-
-    var operations = new ArrayList<BongoWriteOperation<Company>>();
-    operations.add(
-        new BongoUpdate<>(
-            Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
-            List.of(Updates.set("name", "nothing happens").toBsonDocument()),
-            false));
-    operations.add(new BongoInsert<>(insertOne));
-    operations.add(new BongoInsert<>(insertTwo));
-    operations.add(new BongoInsert<>(insertThree));
-    operations.add(new BongoInsert<>(insertFour));
-    operations.add(
-        new BongoUpdate<>(
-            Filters.eq("name", entries.get(1).getName()).toBsonDocument(),
-            List.of(Updates.set("name", "some other update").toBsonDocument()),
-            false));
-    var strategy = new WriteExecutionConcurrentStrategy<Company>(2, 2);
-    collection.bulkWrite(
-        operations,
-        BongoInsertManyOptions.builder().ordered(false).compress(false).build(),
-        strategy);
-    strategy.close();
-
-    var count = collection.count();
-    try (var strategy2 = new ReadExecutionSerialStrategy<Company>()) {
-      var results = collection.find(strategy2).into(new ArrayList<>());
-      results.forEach(System.out::println);
-    }
     Assertions.assertEquals(7, count);
     var entry = collection.findOne(Filters.eq("name", "nothing happens").toBsonDocument());
     Assertions.assertNotNull(entry);
@@ -246,8 +145,9 @@ public class BulkWriteTest {
   }
 
   @ParameterizedTest(name = "{0}")
-  @ArgumentsSource(WriteStrategyProvider.class)
-  public void testManyOperationsAggregateReturnValue(WriteStrategyProvider.WriteStrategyWrapper strategyWrapper) {
+  @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
+  public void testManyOperationsAggregateReturnValue(
+          WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var strategy = strategyWrapper.getStrategy();
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
@@ -277,15 +177,10 @@ public class BulkWriteTest {
     operations.add(
         new BongoUpdate<>(
             Filters.eq("name", "doesn't exist in this world").toBsonDocument(),
-            List.of(Updates.set("name", "some other update").toBsonDocument()),
+            List.of(Updates.set("name", "some other update took your soul").toBsonDocument()),
             false,
             true));
-    //    var strategy = new WriteExecutionSerialStrategy<Company>();
-    var bulkResult =
-        collection.bulkWrite(
-            operations,
-            strategyWrapper.getOptions(),
-            strategy);
+    var bulkResult = collection.bulkWrite(operations, strategyWrapper.getOptions(), strategy);
     strategy.close();
 
     var count = collection.count();
@@ -308,8 +203,9 @@ public class BulkWriteTest {
     Assertions.assertEquals(7, bulkResult.getUpsertedIds().get(0).getIndex());
   }
 
-  @Test
-  public void testBulkInsertsUnordered(@MongoUrl ServerAddress mongoUrl) {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
+  public void testBulkInsertsUnordered(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 

@@ -18,9 +18,8 @@ public class BongoWriteRequestConverter implements BobBsonConverter<BongoWriteRe
     bsonWriter.writeString(type.getCommand(), col);
     bsonWriter.writeString("$db", db);
 
-    if (ordered) {
-      bsonWriter.writeBoolean("ordered", true);
-    }
+    // TODO should I make ordered a Boolean not a primitive?
+    bsonWriter.writeBoolean("ordered", ordered);
 
     bsonWriter.writeEndDocument();
   }
