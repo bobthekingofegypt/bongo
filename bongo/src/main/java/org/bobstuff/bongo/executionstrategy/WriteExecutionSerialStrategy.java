@@ -133,7 +133,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
 
       var response =
           wireProtocol.readServerResponse(socket, codec.converter(BongoBulkWriteResponse.class));
-      var responsePayload = response.getPayload();
+      var responsePayload = response.payload();
 
       if (responsePayload == null) {
         throw new BongoException("Unable to read response to bulk write request");

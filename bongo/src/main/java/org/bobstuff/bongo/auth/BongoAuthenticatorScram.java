@@ -53,7 +53,7 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
                 codec.converter(BsonDocument.class),
                 command,
                 codec.converter(HelloResponse.class))
-            .getPayload();
+            .payload();
     log.trace("Scram initial server response: {}", initialScramResponse);
 
     if (initialScramResponse.getSpeculativeAuthenticate() == null) {
@@ -82,7 +82,7 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
                 codec.converter(BsonDocument.class),
                 saslContinueCommand,
                 codec.converter(FinalScramMessage.class))
-            .getPayload();
+            .payload();
 
     if (!finalResponse.isOk()) {
       throw new BongoAuthenticatorException(

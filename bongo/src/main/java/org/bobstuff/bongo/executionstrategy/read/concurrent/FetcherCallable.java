@@ -57,7 +57,7 @@ public class FetcherCallable<TModel> implements Callable<Void> {
                   requestCompression,
                   exhaustible,
                   null,
-                  socket.getNextRequestId());
+                  wireProtocol.getNextRequestId());
         }
 
         for (var buf : lastGetMoreMessage.getBuffers()) {
@@ -69,12 +69,12 @@ public class FetcherCallable<TModel> implements Callable<Void> {
 
       WireProtocol.Response<BobBsonBuffer> getMoreResponse;
       log.debug("concurrent strategy reading new batch");
-      getMoreResponse = wireProtocol.readRawServerResponse(socket, true);
+      getMoreResponse = wireProtocol.readRawServerResponse(socket);
 
-      BsonReader reader = new BsonReader(getMoreResponse.getPayload());
+      BsonReader reader = new BsonReader(getMoreResponse.payload());
       result = findResponseConverterSkipBody.read(reader);
       try {
-        decodeQueue.put(getMoreResponse.getPayload());
+        decodeQueue.put(getMoreResponse.payload());
       } catch (InterruptedException e) {
         log.debug(
             "Fetcher process interrupted waiting for space on queue for response" + " payload");

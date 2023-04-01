@@ -95,7 +95,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
               var response =
                   wireProtocol.readServerResponse(
                       localSocket, codec.converter(BongoBulkWriteResponse.class));
-              var responsePayload = response.getPayload();
+              var responsePayload = response.payload();
 
               if (responsePayload == null) {
                 throw new BongoException("Unable to read response to bulk write request");
@@ -226,7 +226,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
                       .indexMap(indexMap)
                       .build();
 
-              var requestId = socket.getNextRequestId();
+              var requestId = wireProtocol.getNextRequestId();
               var buffer =
                   wireProtocol.prepareCommandMessage(
                       socket,

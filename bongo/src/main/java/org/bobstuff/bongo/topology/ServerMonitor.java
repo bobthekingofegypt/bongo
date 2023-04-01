@@ -120,7 +120,7 @@ public class ServerMonitor implements Runnable {
     }
 
     var helloResponse =
-        wireProtocol.readServerResponse(socket, codec.converter(HelloResponse.class)).getPayload();
+        wireProtocol.readServerResponse(socket, codec.converter(HelloResponse.class)).payload();
     var description = ServerDescription.from(socket.getServerAddress(), helloResponse);
     log.debug("Received server description: {} from {}", description, serverAddress);
 

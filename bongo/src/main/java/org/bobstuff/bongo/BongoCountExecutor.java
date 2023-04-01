@@ -29,7 +29,7 @@ public class BongoCountExecutor {
             false,
             false);
 
-    var payload = response.getPayload();
+    var payload = response.payload();
     if (payload != null) {
       if (payload.isOk()) {
         return payload.getN();

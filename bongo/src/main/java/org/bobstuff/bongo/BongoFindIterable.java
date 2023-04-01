@@ -22,7 +22,7 @@ public class BongoFindIterable<TModel> {
   private BongoConnectionProvider connectionProvider;
   private BongoCodec codec;
 
-  private ReadExecutionStrategy readExecutionStrategy;
+  private ReadExecutionStrategy<TModel> readExecutionStrategy;
 
   private BufferDataPool bufferPool;
   private WireProtocol wireProtocol;
@@ -34,7 +34,7 @@ public class BongoFindIterable<TModel> {
       BongoCodec codec,
       WireProtocol wireProtocol,
       BufferDataPool bufferPool,
-      ReadExecutionStrategy readExecutionStrategy) {
+      ReadExecutionStrategy<TModel> readExecutionStrategy) {
     this.identifier = identifier;
     this.model = model;
     this.codec = codec;
@@ -84,7 +84,7 @@ public class BongoFindIterable<TModel> {
     var f = filter != null ? filter : new BsonDocument();
     var findRequestConverter = new BongoFindRequestConverter(codec.converter(BsonDocument.class));
     var request = new BongoFindRequest(identifier, fo, f, batchSize);
-    return new BongoCursor<TModel>(
+    return new BongoCursor<>(
         readExecutionStrategy.execute(
             identifier,
             findRequestConverter,

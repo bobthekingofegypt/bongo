@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.SocketFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BobBsonBuffer;
@@ -29,7 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Slf4j
 public class BongoSocket {
-  private final AtomicInteger requestId;
   private final ServerAddress serverAddress;
   private final BongoAuthenticator authenticator;
   private final BufferDataPool bufferPool;
@@ -62,17 +60,12 @@ public class BongoSocket {
     this.initialiser = initialiser;
     this.wireProtocol = wireProtocol;
     this.bufferPool = bufferPool;
-    this.requestId = new AtomicInteger();
     this.responseHeaderBuffer = bufferPool.allocate(16);
     this.closed = false;
   }
 
   public void setSocketPool(BongoSocketPool socketPool) {
     this.socketPool = socketPool;
-  }
-
-  public int getNextRequestId() {
-    return requestId.getAndIncrement();
   }
 
   public ServerAddress getServerAddress() {

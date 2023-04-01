@@ -48,7 +48,7 @@ public class BongoSocketInitialiser {
                 codec.converter(BsonDocument.class),
                 command,
                 codec.converter(HelloResponse.class))
-            .getPayload();
+            .payload();
 
     if (!initialResponse.isOk()) {
       throw new BongoAuthenticatorException(

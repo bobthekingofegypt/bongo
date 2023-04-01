@@ -63,7 +63,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
             findResponseConverter,
             connectionProvider);
 
-    return new BongoDbBatchCursorSerial<>(response.getPayload(), model, getMore);
+    return new BongoDbBatchCursorSerial<>(response.payload(), model, getMore);
   }
 
   private class ExecuteGetMore<TModel> implements BongoDbBatchCursorGetMore<TModel> {
@@ -102,7 +102,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
       this.cursorType = cursorType;
       this.getMoreRequest =
           new BongoGetMoreRequest(
-              lastResponse.getPayload().getId(),
+              lastResponse.payload().getId(),
               identifier.getDatabaseName(),
               identifier.getCollectionName(),
               batchSize);
@@ -111,7 +111,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
     @Override
     public @Nullable BongoFindResponse<TModel> getMore() {
       // if cursor id is 0 the cursor is exhausted
-      if (lastResponse.getPayload().getId() == 0) {
+      if (lastResponse.payload().getId() == 0) {
         if (socket != null) {
           socket.release();
           socket = null;
@@ -141,7 +141,7 @@ public class ReadExecutionSerialStrategy<TModel> implements ReadExecutionStrateg
         socket = localSocket;
       }
 
-      return response.getPayload();
+      return response.payload();
     }
 
     @Override

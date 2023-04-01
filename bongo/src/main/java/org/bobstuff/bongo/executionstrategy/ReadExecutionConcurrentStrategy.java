@@ -83,7 +83,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
             requestCompression,
             false);
 
-    var payload = response.getPayload();
+    var payload = response.payload();
     if (!payload.isOk()) {
       log.trace("Response from initial find contains non ok code {}", payload.getOk());
       socket.release();
@@ -91,7 +91,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     }
 
     try {
-      responses.put(response.getPayload());
+      responses.put(response.payload());
     } catch (InterruptedException e) {
       throw new BongoException(
           "Failed to put initial find response onto response queue due to interrupt", e);
@@ -116,7 +116,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
     this.exhaustible = cursorType == BongoCursorType.Exhaustible;
     var getMoreRequest =
         new BongoGetMoreRequest(
-            response.getPayload().getId(),
+            response.payload().getId(),
             identifier.getDatabaseName(),
             identifier.getCollectionName(),
             batchSize);

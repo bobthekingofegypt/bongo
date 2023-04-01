@@ -101,7 +101,7 @@ public class ReadExecutionConcurrentStrategyTest {
             Mockito.isNull(),
             any(Integer.class)))
         .thenReturn(getMoreRequest);
-    when(wireProtocol.readRawServerResponse(any(), eq(true))).thenReturn(getMoreResponse);
+    when(wireProtocol.readRawServerResponse(any())).thenReturn(getMoreResponse);
 
     var requestConverter =
         (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
@@ -340,7 +340,7 @@ public class ReadExecutionConcurrentStrategyTest {
             Mockito.isNull(),
             any(Integer.class)))
         .thenReturn(getMoreRequest);
-    when(wireProtocol.readRawServerResponse(any(), eq(true))).thenReturn(getMoreResponse);
+    when(wireProtocol.readRawServerResponse(any())).thenReturn(getMoreResponse);
 
     var requestConverter =
         (BobBsonConverter<BongoFindRequest>) Mockito.mock(BobBsonConverter.class);
@@ -421,7 +421,7 @@ public class ReadExecutionConcurrentStrategyTest {
             Mockito.isNull(),
             any(Integer.class)))
         .thenReturn(getMoreRequest);
-    when(wireProtocol.readRawServerResponse(any(), eq(true)))
+    when(wireProtocol.readRawServerResponse(any()))
         .thenThrow(new BongoException("failing in unit test"));
 
     var requestConverter =

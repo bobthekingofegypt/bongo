@@ -10,6 +10,7 @@ import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.models.company.Company;
+import org.bobstuff.bongo.monitoring.WireProtocolMonitorFileWrite;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.types.ObjectId;
 
@@ -18,6 +19,7 @@ public class Main {
     var bobBson = new BobBson();
     BsonValueConverters.register(bobBson);
     bobBson.registerConverter(ObjectId.class, new BongoObjectIdConverter());
+    var codec = new BongoCodecBobBson(bobBson);
 
     var settings =
         BongoSettings.builder()
@@ -34,7 +36,8 @@ public class Main {
                     .build())
             .bufferPool(new BobBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())
-            .codec(new BongoCodecBobBson(bobBson))
+            .codec(codec)
+            .wireProtocolMonitor(new WireProtocolMonitorFileWrite(codec))
             .build();
 
     var bongo = new BongoClient(settings);

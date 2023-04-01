@@ -1,5 +1,6 @@
 package org.bobstuff.bongo;
 
+import org.bobstuff.bongo.connection.BongoRequestIDGenerator;
 import org.bobstuff.bongo.exception.BongoConnectionException;
 import org.bobstuff.bongo.topology.TopologyManager;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -13,7 +14,11 @@ public class BongoClient {
   public BongoClient(@NonNull BongoSettings settings) {
     // TODO verify all settings are actually valid for what we need to proceed, throw if not
     this.settings = settings;
-    this.wireProtocol = new WireProtocol(settings.getBufferPool(), settings.getCodec());
+    this.wireProtocol =
+        new WireProtocol(
+            settings.getBufferPool(),
+            new BongoRequestIDGenerator(),
+            settings.getWireProtocolMonitor());
     this.topology = new TopologyManager(settings, wireProtocol);
   }
 
