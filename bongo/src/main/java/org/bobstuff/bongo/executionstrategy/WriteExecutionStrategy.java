@@ -9,8 +9,7 @@ public interface WriteExecutionStrategy<TModel> extends AutoCloseable {
   BongoBulkWriteResult execute(
       BongoCollection.Identifier identifier,
       BongoBulkOperationSplitter<TModel> splitter,
-      BongoInsertManyOptions options,
-      //      @Nullable BongoInsertProcessor<TModel> insertProcessor,
+      BongoBulkWriteOptions options,
       BufferDataPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,

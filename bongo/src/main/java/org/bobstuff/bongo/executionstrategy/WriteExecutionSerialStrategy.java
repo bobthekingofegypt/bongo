@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
-import org.bobstuff.bongo.compressors.BongoCompressor;
 import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.converters.BongoWriteRequestConverter;
 import org.bobstuff.bongo.exception.BongoBulkWriteException;
@@ -22,15 +21,13 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
   public BongoBulkWriteResult execute(
       BongoCollection.Identifier identifier,
       BongoBulkOperationSplitter<TModel> splitter,
-      BongoInsertManyOptions options,
+      BongoBulkWriteOptions options,
       BufferDataPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
       BongoWriteConcern writeConcern) {
     var socket = connectionProvider.getReadConnection();
-    var requestCompression =
-        BongoCompressor.shouldCompress(socket.getCompressor(), options.getCompress());
 
     var tracker = new BongoBulkWriteTracker(options.isOrdered());
     var allIds = new HashMap<Integer, byte[]>();
@@ -40,7 +37,6 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
           splitter,
           identifier,
           writeConcern,
-          requestCompression,
           options,
           wireProtocol,
           socket,
@@ -48,60 +44,17 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
           tracker,
           allIds);
     } else {
-      var insertsQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
-      splitter.drainToQueue(BongoWriteOperationType.Insert, insertsQueue);
-      if (!insertsQueue.isEmpty()) {
-        final var inserts =
-            new BongoBulkWriteOperationUnorderedSplitter<>(
-                insertsQueue, splitter.getModel(), codec);
-        writeBulkRequests(
-            inserts,
-            identifier,
-            writeConcern,
-            requestCompression,
-            options,
-            wireProtocol,
-            socket,
-            codec,
-            tracker,
-            allIds);
-      }
-      var updatesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
-      splitter.drainToQueue(BongoWriteOperationType.Update, updatesQueue);
-      if (!updatesQueue.isEmpty()) {
-        final var updates =
-            new BongoBulkWriteOperationUnorderedSplitter<>(
-                updatesQueue, splitter.getModel(), codec);
-        writeBulkRequests(
-            updates,
-            identifier,
-            writeConcern,
-            requestCompression,
-            options,
-            wireProtocol,
-            socket,
-            codec,
-            tracker,
-            allIds);
-      }
-      var deletesQueue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
-      splitter.drainToQueue(BongoWriteOperationType.Delete, deletesQueue);
-      if (!deletesQueue.isEmpty()) {
-        final var deletes =
-            new BongoBulkWriteOperationUnorderedSplitter<>(
-                deletesQueue, splitter.getModel(), codec);
-        writeBulkRequests(
-            deletes,
-            identifier,
-            writeConcern,
-            requestCompression,
-            options,
-            wireProtocol,
-            socket,
-            codec,
-            tracker,
-            allIds);
-      }
+      writeBulkRequestsForType(
+          BongoWriteOperationType.values(),
+          splitter,
+          identifier,
+          writeConcern,
+          options,
+          wireProtocol,
+          socket,
+          codec,
+          tracker,
+          allIds);
     }
 
     socket.release();
@@ -112,18 +65,46 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
 
     if (writeConcern.isAcknowledged()) {
       return new BongoBulkWriteResultAcknowledged(allIds, tracker);
-      // TODO figure this back out
-      //      return new BongoInsertManyResultAcknowledged(wrappedItems.getIds());
     }
     return new BongoBulkWriteResultUnacknowledged();
+  }
+
+  public void writeBulkRequestsForType(
+      BongoWriteOperationType[] types,
+      BongoBulkOperationSplitter<TModel> splitter,
+      BongoCollection.Identifier identifier,
+      BongoWriteConcern writeConcern,
+      BongoBulkWriteOptions options,
+      WireProtocol wireProtocol,
+      BongoSocket socket,
+      BongoCodec codec,
+      BongoBulkWriteTracker tracker,
+      Map<Integer, byte[]> allIds) {
+    for (var type : types) {
+      var queue = new ConcurrentLinkedQueue<BongoBulkWriteOperationIndexedWrapper<TModel>>();
+      splitter.drainToQueue(type, queue);
+      if (!queue.isEmpty()) {
+        final var operations =
+            new BongoBulkWriteOperationUnorderedSplitter<>(queue, splitter.getModel(), codec);
+        writeBulkRequests(
+            operations,
+            identifier,
+            writeConcern,
+            options,
+            wireProtocol,
+            socket,
+            codec,
+            tracker,
+            allIds);
+      }
+    }
   }
 
   public void writeBulkRequests(
       BongoBulkOperationSplitter<TModel> splitter,
       BongoCollection.Identifier identifier,
       BongoWriteConcern writeConcern,
-      boolean requestCompression,
-      BongoInsertManyOptions options,
+      BongoBulkWriteOptions options,
       WireProtocol wireProtocol,
       BongoSocket socket,
       BongoCodec codec,
@@ -136,17 +117,17 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
 
       var indexMap = new BongoIndexMap();
       var payload =
-          BongoPayloadTemp.<TModel>builder()
+          BongoPayload.<TModel>builder()
               .identifier(operationType.getPayload())
               .items(splitter)
               .indexMap(indexMap)
               .build();
-      wireProtocol.sendCommandMessageTemp(
+      wireProtocol.sendCommandMessage(
           socket,
           // TODO this could be registered on internal bobbson
           new BongoWriteRequestConverter(),
           request,
-          requestCompression,
+          options.getCompress(),
           false,
           payload);
 

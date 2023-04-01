@@ -9,4 +9,5 @@ public class BongoInsertManyOptions {
   private @Builder.Default boolean ordered = true;
   private Boolean bypassDocumentValidation;
   private Boolean compress;
+  private String comment;
 }

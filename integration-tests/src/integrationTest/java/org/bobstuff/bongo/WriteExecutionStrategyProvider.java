@@ -68,7 +68,8 @@ public class WriteExecutionStrategyProvider {
   public static class WriteExecutionStrategyProviderAll implements ArgumentsProvider {
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-      return createOptions().stream().map((option) -> Arguments.of(Named.named(option.getName(), option)));
+      return createOptions().stream()
+          .map((option) -> Arguments.of(Named.named(option.getName(), option)));
     }
   }
 
@@ -93,7 +94,8 @@ public class WriteExecutionStrategyProvider {
   public static class WriteExecutionStrategyWrapper<TModel> {
     private String name;
     private WriteExecutionStrategy<TModel> strategy;
-    private BongoInsertManyOptions options;
+    private BongoBulkWriteOptions options;
+    private BongoInsertManyOptions insertManyOptions;
     private boolean compressed;
     private boolean ordered;
 
@@ -103,7 +105,9 @@ public class WriteExecutionStrategyProvider {
       this.strategy = strategy;
       this.compressed = compressed;
       this.ordered = ordered;
-      this.options = BongoInsertManyOptions.builder().compress(compressed).ordered(ordered).build();
+      this.options = BongoBulkWriteOptions.builder().compress(compressed).ordered(ordered).build();
+      this.insertManyOptions =
+          BongoInsertManyOptions.builder().compress(compressed).ordered(ordered).build();
     }
 
     public String getName() {
@@ -126,11 +130,19 @@ public class WriteExecutionStrategyProvider {
       this.strategy = strategy;
     }
 
-    public BongoInsertManyOptions getOptions() {
+    public BongoInsertManyOptions getInsertManyOptions() {
+      return insertManyOptions;
+    }
+
+    public void setInsertManyOptions(BongoInsertManyOptions insertManyOptions) {
+      this.insertManyOptions = insertManyOptions;
+    }
+
+    public BongoBulkWriteOptions getOptions() {
       return options;
     }
 
-    public void setOptions(BongoInsertManyOptions options) {
+    public void setOptions(BongoBulkWriteOptions options) {
       this.options = options;
     }
   }

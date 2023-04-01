@@ -1,7 +1,5 @@
 package org.bobstuff.bongo;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 public class BongoDeleteResultUnacknowledged implements BongoDeleteResult {
   @Override
   public int getDeletedCount() {

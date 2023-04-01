@@ -12,11 +12,18 @@ public class BongoDelete<TModel> implements BongoWriteOperation<TModel> {
 
   private int limit;
 
+  private BongoDeleteOptions options;
+
   public BongoDelete() {}
 
   public BongoDelete(BsonDocument filter, boolean multiple) {
+    this(filter, multiple, BongoDeleteOptions.builder().build());
+  }
+
+  public BongoDelete(BsonDocument filter, boolean multiple, BongoDeleteOptions options) {
     this.filter = filter;
     this.limit = multiple ? 0 : 1;
+    this.options = options;
   }
 
   public @Nullable BsonDocument getFilter() {

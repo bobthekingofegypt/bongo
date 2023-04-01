@@ -77,7 +77,8 @@ public class BulkWriteTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
-  public void testBulkWrite(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testBulkWrite(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -99,7 +100,8 @@ public class BulkWriteTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
-  public void testManyOperationsBulkWrite(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testManyOperationsBulkWrite(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -147,7 +149,7 @@ public class BulkWriteTest {
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
   public void testManyOperationsAggregateReturnValue(
-          WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var strategy = strategyWrapper.getStrategy();
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
@@ -179,7 +181,7 @@ public class BulkWriteTest {
             Filters.eq("name", "doesn't exist in this world").toBsonDocument(),
             List.of(Updates.set("name", "some other update took your soul").toBsonDocument()),
             false,
-            true));
+            BongoUpdateOptions.builder().upsert(true).build()));
     var bulkResult = collection.bulkWrite(operations, strategyWrapper.getOptions(), strategy);
     strategy.close();
 
@@ -205,7 +207,8 @@ public class BulkWriteTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderAll.class)
-  public void testBulkInsertsUnordered(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testBulkInsertsUnordered(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -223,7 +226,7 @@ public class BulkWriteTest {
     var strategy = new WriteExecutionConcurrentStrategy<Company>(3, 3);
     collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(false).build(),
         strategy);
 
     var count = collection.count();
@@ -261,7 +264,7 @@ public class BulkWriteTest {
           () ->
               collection.bulkWrite(
                   operations,
-                  BongoInsertManyOptions.builder().compress(false).ordered(true).build(),
+                  BongoBulkWriteOptions.builder().compress(false).ordered(true).build(),
                   strategy));
     }
   }

@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 @Builder
-public class BongoPayload<TModel> {
+public class BongoPayload {
   private String identifier;
-  private Class<TModel> model;
-  private BongoWrappedBulkItems<TModel> items;
+  private BongoBulkOperationSplitter items;
+  @Builder.Default private BongoIndexMap indexMap = new BongoIndexMap();
 }

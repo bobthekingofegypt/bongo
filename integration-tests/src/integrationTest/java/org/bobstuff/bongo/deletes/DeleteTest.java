@@ -74,7 +74,8 @@ public class DeleteTest {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
-    var result = collection.deleteOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
+    var result =
+        collection.deleteOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
 
     Assertions.assertEquals(1, result.getDeletedCount());
     var count = collection.count();

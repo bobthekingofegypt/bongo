@@ -64,6 +64,7 @@ public class BongoSocketInitialiser {
     var serverDescription = ServerDescription.from(socket.getServerAddress(), initialResponse);
 
     // TODO read compressors from the response
+    System.out.println(initialResponse.getCompression());
 
     return new BongoSocketInitialiserResult(serverDescription, compressors.get(0));
   }

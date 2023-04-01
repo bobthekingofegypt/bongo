@@ -20,7 +20,6 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -85,7 +84,7 @@ public class UpdateOneTest {
         collection.updateOne(
             Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
             List.of(Updates.set("description", "something something something").toBsonDocument()),
-            false,
+            BongoUpdateOptions.builder().build(),
             strategyWrapper.getStrategy());
 
     Assertions.assertEquals(1, result.getMatchedCount());
@@ -98,7 +97,8 @@ public class UpdateOneTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderOrdered.class)
-  public void testUpdateOneMultipleConditions(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testUpdateOneMultipleConditions(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -106,7 +106,9 @@ public class UpdateOneTest {
         Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
         List.of(
             Updates.set("description", "something something something").toBsonDocument(),
-            Updates.set("reviewScore", 14).toBsonDocument()), false, strategyWrapper.getStrategy());
+            Updates.set("reviewScore", 14).toBsonDocument()),
+        BongoUpdateOptions.builder().build(),
+        strategyWrapper.getStrategy());
 
     var company = collection.findOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
 
@@ -116,7 +118,8 @@ public class UpdateOneTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderOrdered.class)
-  public void testUpdateOneOnlyUpdatedOne(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testUpdateOneOnlyUpdatedOne(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -124,7 +127,9 @@ public class UpdateOneTest {
         Filters.eq("name", entries.get(0).getName()).toBsonDocument(),
         List.of(
             Updates.set("description", "something something something").toBsonDocument(),
-            Updates.set("reviewScore", 14).toBsonDocument()), false, strategyWrapper.getStrategy());
+            Updates.set("reviewScore", 14).toBsonDocument()),
+        BongoUpdateOptions.builder().build(),
+        strategyWrapper.getStrategy());
 
     var company = collection.findOne(Filters.eq("name", entries.get(0).getName()).toBsonDocument());
     var otherCompany =
@@ -137,7 +142,8 @@ public class UpdateOneTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderOrdered.class)
-  public void testUpdateMany(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testUpdateMany(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -145,7 +151,9 @@ public class UpdateOneTest {
         Filters.eq("owner.name", "Bob").toBsonDocument(),
         List.of(
             Updates.set("description", "something something something").toBsonDocument(),
-            Updates.set("reviewScore", 14).toBsonDocument()), false, strategyWrapper.getStrategy());
+            Updates.set("reviewScore", 14).toBsonDocument()),
+        BongoUpdateOptions.builder().build(),
+        strategyWrapper.getStrategy());
 
     var companies =
         collection
@@ -165,7 +173,8 @@ public class UpdateOneTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderOrdered.class)
-  public void testUpdateOneWithUpsert(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testUpdateOneWithUpsert(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -174,7 +183,8 @@ public class UpdateOneTest {
         List.of(
             Updates.set("description", "something something something").toBsonDocument(),
             Updates.set("reviewScore", 14).toBsonDocument()),
-        true, strategyWrapper.getStrategy());
+        BongoUpdateOptions.builder().upsert(true).build(),
+        strategyWrapper.getStrategy());
 
     var companies = collection.find(new ReadExecutionSerialStrategy<>()).into(new ArrayList<>());
     var otherCompany = collection.findOne(Filters.ne("owner.name", "Bobbyboy").toBsonDocument());
@@ -182,9 +192,11 @@ public class UpdateOneTest {
     Assertions.assertEquals(4, companies.size());
     Assertions.assertNotEquals("something something something", otherCompany.getDescription());
   }
+
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(WriteExecutionStrategyProvider.WriteExecutionStrategyProviderOrdered.class)
-  public void testUpdateManyWithUpsert(WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
+  public void testUpdateManyWithUpsert(
+      WriteExecutionStrategyProvider.WriteExecutionStrategyWrapper<Company> strategyWrapper) {
     var database = bongo.getDatabase("inttest");
     var collection = database.getCollection("companies", Company.class);
 
@@ -193,7 +205,8 @@ public class UpdateOneTest {
         List.of(
             Updates.set("description", "something something something").toBsonDocument(),
             Updates.set("reviewScore", 14).toBsonDocument()),
-        true, strategyWrapper.getStrategy());
+        BongoUpdateOptions.builder().upsert(true).build(),
+        strategyWrapper.getStrategy());
 
     var companies = collection.find(new ReadExecutionSerialStrategy<>()).into(new ArrayList<>());
     var otherCompany = collection.findOne(Filters.ne("owner.name", "Bobbyboy").toBsonDocument());

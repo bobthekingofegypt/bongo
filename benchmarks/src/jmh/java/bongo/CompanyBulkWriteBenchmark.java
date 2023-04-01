@@ -357,7 +357,7 @@ public class CompanyBulkWriteBenchmark {
     var strategy = new WriteExecutionSerialStrategy<Company>();
     state.collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(true).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(true).build(),
         strategy);
     strategy.close();
   }
@@ -367,7 +367,7 @@ public class CompanyBulkWriteBenchmark {
     var strategy = new WriteExecutionSerialStrategy<Company>();
     state.collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(false).build(),
         strategy);
     strategy.close();
   }
@@ -377,7 +377,7 @@ public class CompanyBulkWriteBenchmark {
     var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
     state.collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(true).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(true).build(),
         strategy);
     strategy.close();
   }
@@ -387,7 +387,7 @@ public class CompanyBulkWriteBenchmark {
     var strategy = new WriteExecutionConcurrentStrategy<Company>(1, 1);
     state.collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(false).build(),
         strategy);
     strategy.close();
   }
@@ -397,7 +397,7 @@ public class CompanyBulkWriteBenchmark {
     var strategy = new WriteExecutionConcurrentStrategy<Company>(6, 6);
     state.collection.bulkWrite(
         operations,
-        BongoInsertManyOptions.builder().compress(false).ordered(false).build(),
+        BongoBulkWriteOptions.builder().compress(false).ordered(false).build(),
         strategy);
     strategy.close();
   }

@@ -166,7 +166,8 @@ public class BulkInsertTest {
             .getCollection("companies", Company.class)
             .withWriteConcern(new BongoWriteConcern(0));
     var insertResult =
-        collection.insertMany(entries, strategyWrapper.getStrategy(), strategyWrapper.getOptions());
+        collection.insertMany(
+            entries, strategyWrapper.getStrategy(), strategyWrapper.getInsertManyOptions());
     strategyWrapper.getStrategy().close();
 
     Assertions.assertThrows(UnsupportedOperationException.class, insertResult::getInsertedIds);
@@ -208,7 +209,7 @@ public class BulkInsertTest {
             BongoBulkWriteException.class,
             () ->
                 collection.insertMany(
-                    entries, strategyWrapper.getStrategy(), strategyWrapper.getOptions()),
+                    entries, strategyWrapper.getStrategy(), strategyWrapper.getInsertManyOptions()),
             "Expected insertMany() to throw, but it didn't");
 
     strategyWrapper.getStrategy().close();

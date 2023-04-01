@@ -17,23 +17,23 @@ public class BongoUpdate<TModel> implements BongoWriteOperation<TModel> {
   @BsonAttribute("multi")
   private boolean multiple;
 
-  @BsonAttribute("upsert")
-  private boolean upsert;
+  private BongoUpdateOptions options;
 
   public BongoUpdate() {}
 
   public BongoUpdate(BsonDocument filter, List<BsonDocument> updates, boolean multiple) {
-    this.filter = filter;
-    this.updates = updates;
-    this.multiple = multiple;
+    this(filter, updates, multiple, BongoUpdateOptions.builder().build());
   }
 
   public BongoUpdate(
-      BsonDocument filter, List<BsonDocument> updates, boolean multiple, boolean upsert) {
+      BsonDocument filter,
+      List<BsonDocument> updates,
+      boolean multiple,
+      BongoUpdateOptions options) {
     this.filter = filter;
     this.updates = updates;
     this.multiple = multiple;
-    this.upsert = upsert;
+    this.options = options;
   }
 
   public @Nullable BsonDocument getFilter() {
@@ -60,12 +60,13 @@ public class BongoUpdate<TModel> implements BongoWriteOperation<TModel> {
     this.multiple = multiple;
   }
 
+  @BsonAttribute("upsert")
   public boolean isUpsert() {
-    return upsert;
+    return options.isUpsert();
   }
 
   public void setUpsert(boolean upsert) {
-    this.upsert = upsert;
+    options.setUpsert(upsert);
   }
 
   @Override

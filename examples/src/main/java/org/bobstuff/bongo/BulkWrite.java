@@ -73,7 +73,7 @@ public class BulkWrite {
       try {
         collection.bulkWrite(
             companies,
-            BongoInsertManyOptions.builder().ordered(true).compress(false).build(),
+            BongoBulkWriteOptions.builder().ordered(true).compress(false).build(),
             strategy);
       } catch (BongoBulkWriteException e) {
         System.out.println(e.getWriteErrors().size());

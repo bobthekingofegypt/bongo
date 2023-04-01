@@ -23,6 +23,7 @@ public class HelloResponse {
   private int maxWireVersion;
   private boolean readOnly;
   private List<String> hosts;
+  private List<String> compression;
   private boolean secondary;
   private String setName;
   private double ok;
