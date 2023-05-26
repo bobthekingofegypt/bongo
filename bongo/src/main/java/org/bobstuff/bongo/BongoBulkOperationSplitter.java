@@ -2,7 +2,7 @@ package org.bobstuff.bongo;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.bobstuff.bobbson.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bongo.codec.BongoCodec;
 
 public interface BongoBulkOperationSplitter<TModel> {

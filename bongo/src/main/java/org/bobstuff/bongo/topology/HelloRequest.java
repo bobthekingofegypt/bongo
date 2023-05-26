@@ -2,9 +2,9 @@ package org.bobstuff.bongo.topology;
 
 import lombok.Data;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
-@CompiledBson
+@GenerateBobBsonConverter
 @Data
 public class HelloRequest {
   @BsonAttribute(value = "hello", order = 1)

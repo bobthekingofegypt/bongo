@@ -4,13 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@CompiledBson
+@GenerateBobBsonConverter
 public class Stats {
   private double revenue;
   private double profit;

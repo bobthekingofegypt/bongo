@@ -5,7 +5,7 @@ import com.bolyartech.scram_sasl.client.ScramClientFunctionalityImpl;
 import com.bolyartech.scram_sasl.common.ScramException;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -19,12 +19,12 @@ public class BongoAuthenticatorScram implements BongoAuthenticator {
   public static final String HMAC_SHA_256 = "HmacSHA256";
   public static final String SCRAM_SHA_256 = "SCRAM-SHA-256";
   private BongoCredentials credentials;
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
 
   private BongoCodec codec;
 
   public BongoAuthenticatorScram(
-      BongoCredentials credentials, BufferDataPool bufferPool, BongoCodec codec) {
+      BongoCredentials credentials, BobBsonBufferPool bufferPool, BongoCodec codec) {
     this.credentials = credentials;
     this.bufferPool = bufferPool;
     this.codec = codec;

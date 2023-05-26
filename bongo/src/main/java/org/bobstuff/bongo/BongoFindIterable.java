@@ -1,7 +1,8 @@
 package org.bobstuff.bongo;
 
 import java.util.List;
-import org.bobstuff.bobbson.BufferDataPool;
+
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoFindRequestConverter;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionStrategy;
@@ -24,7 +25,7 @@ public class BongoFindIterable<TModel> {
 
   private ReadExecutionStrategy<TModel> readExecutionStrategy;
 
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
   private WireProtocol wireProtocol;
 
   public BongoFindIterable(
@@ -33,7 +34,7 @@ public class BongoFindIterable<TModel> {
       BongoConnectionProvider connectionProvider,
       BongoCodec codec,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       ReadExecutionStrategy<TModel> readExecutionStrategy) {
     this.identifier = identifier;
     this.model = model;

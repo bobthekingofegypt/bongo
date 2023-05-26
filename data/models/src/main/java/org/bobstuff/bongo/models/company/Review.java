@@ -6,12 +6,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.BsonConverter;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.bobstuff.bongo.models.InstantConverter;
 
 @Data
 @Builder
-@CompiledBson
+@GenerateBobBsonConverter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Review {

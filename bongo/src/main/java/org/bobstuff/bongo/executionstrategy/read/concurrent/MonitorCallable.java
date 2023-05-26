@@ -4,7 +4,7 @@ import static org.bobstuff.bongo.BongoDbBatchBlockingCursor.END_RESPONSE;
 
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 

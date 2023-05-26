@@ -1,11 +1,11 @@
 package org.bobstuff.bongo;
 
 import org.bobstuff.bobbson.annotations.BsonAttribute;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-@CompiledBson
+@GenerateBobBsonConverter
 public class BongoDelete<TModel> implements BongoWriteOperation<TModel> {
   @BsonAttribute("q")
   private @Nullable BsonDocument filter;

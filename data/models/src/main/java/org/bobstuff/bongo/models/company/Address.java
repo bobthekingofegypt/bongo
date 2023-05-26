@@ -4,10 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @Builder
-@CompiledBson
+@GenerateBobBsonConverter
 @NoArgsConstructor
 @AllArgsConstructor
 @Data

@@ -2,10 +2,10 @@ package org.bobstuff.bongo.messages;
 
 import java.util.List;
 import lombok.Data;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @Data
-@CompiledBson
+@GenerateBobBsonConverter
 public class BongoBulkWriteResponse {
   private double ok;
   private int n;

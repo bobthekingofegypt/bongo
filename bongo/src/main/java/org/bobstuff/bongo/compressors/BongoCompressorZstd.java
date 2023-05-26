@@ -1,8 +1,8 @@
 package org.bobstuff.bongo.compressors;
 
 import com.github.luben.zstd.Zstd;
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.exception.BongoException;
 
 public class BongoCompressorZstd implements BongoCompressor {
@@ -27,12 +27,12 @@ public class BongoCompressorZstd implements BongoCompressor {
   }
 
   @Override
-  public BobBsonBuffer compress(byte[] data, BufferDataPool bufferPool) {
+  public BobBsonBuffer compress(byte[] data, BobBsonBufferPool bufferPool) {
     return compress(data, 0, data.length, bufferPool);
   }
 
   @Override
-  public BobBsonBuffer compress(byte[] data, int offset, int length, BufferDataPool bufferPool) {
+  public BobBsonBuffer compress(byte[] data, int offset, int length, BobBsonBufferPool bufferPool) {
     var outBuffer = bufferPool.allocate((int) Zstd.compressBound(length - offset));
     byte[] out = outBuffer.getArray();
     if (out == null) {

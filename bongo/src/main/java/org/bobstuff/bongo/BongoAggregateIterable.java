@@ -2,7 +2,8 @@ package org.bobstuff.bongo;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.bobstuff.bobbson.BufferDataPool;
+
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.BongoCollection.Identifier;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoAggregateRequestConverter;
@@ -29,7 +30,7 @@ public class BongoAggregateIterable<TModel> {
   private final BongoCodec codec;
 
   private final ReadExecutionStrategy<TModel> readExecutionStrategy;
-  private final BufferDataPool bufferPool;
+  private final BobBsonBufferPool bufferPool;
   private final WireProtocol wireProtocol;
   private final List<BsonDocument> pipeline;
 
@@ -40,7 +41,7 @@ public class BongoAggregateIterable<TModel> {
       BongoConnectionProvider connectionProvider,
       BongoCodec codec,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       ReadExecutionStrategy<TModel> strategy) {
     this.identifier = identifier;
     this.model = model;

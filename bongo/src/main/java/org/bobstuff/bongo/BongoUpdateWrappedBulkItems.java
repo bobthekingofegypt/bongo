@@ -3,9 +3,10 @@ package org.bobstuff.bongo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BobBsonConverter;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.writer.BsonWriter;
+import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bobstuff.bongo.exception.BongoException;
 
 public class BongoUpdateWrappedBulkItems<TModel> extends BongoWrappedBulkItems<TModel> {
@@ -30,7 +31,7 @@ public class BongoUpdateWrappedBulkItems<TModel> extends BongoWrappedBulkItems<T
   }
 
   public void write(BobBsonBuffer buffer) {
-    var writer = new BsonWriter(buffer);
+    var writer = new StackBsonWriter(buffer);
     for (var i = index; i < items.size(); i += 1) {
       var item = items.get(i);
       if (item == null) {

@@ -1,7 +1,7 @@
 package org.bobstuff.bongo.compressors;
 
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface BongoCompressor {
@@ -9,9 +9,9 @@ public interface BongoCompressor {
 
   String getIdentifier();
 
-  BobBsonBuffer compress(byte[] data, BufferDataPool bufferPool);
+  BobBsonBuffer compress(byte[] data, BobBsonBufferPool bufferPool);
 
-  BobBsonBuffer compress(byte[] data, int offset, int length, BufferDataPool bufferPool);
+  BobBsonBuffer compress(byte[] data, int offset, int length, BobBsonBufferPool bufferPool);
 
   void decompress(
       byte[] data, int dataOffset, int dataSize, byte[] dst, int dstOffset, int dstSize);

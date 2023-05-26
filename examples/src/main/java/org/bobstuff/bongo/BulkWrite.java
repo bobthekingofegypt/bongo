@@ -9,7 +9,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
-import org.bobstuff.bobbson.buffer.BobBufferPool;
+import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
@@ -39,7 +39,7 @@ public class BulkWrite {
                             .authSource("admin")
                             .build())
                     .build())
-            .bufferPool(new BobBufferPool())
+            .bufferPool(new ConcurrentBobBsonBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())
             .codec(new BongoCodecBobBson(bobBson))
             .build();
@@ -73,7 +73,7 @@ public class BulkWrite {
       try {
         collection.bulkWrite(
             companies,
-            BongoBulkWriteOptions.builder().ordered(true).compress(false).build(),
+            BongoBulkWriteOptions.builder().ordered(true).comment("Does this pass a comment").compress(false).build(),
             strategy);
       } catch (BongoBulkWriteException e) {
         System.out.println(e.getWriteErrors().size());

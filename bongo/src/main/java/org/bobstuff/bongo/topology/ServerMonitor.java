@@ -3,6 +3,7 @@ package org.bobstuff.bongo.topology;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -21,7 +22,7 @@ public class ServerMonitor implements Runnable {
 
   private ServerDescription currentServerDescription;
   private boolean closed = false; // TODO should belong to ClusterServer
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
   private BongoCodec codec;
   private BobBsonConverter<HelloRequest> helloRequestCodec;
 
@@ -37,7 +38,7 @@ public class ServerMonitor implements Runnable {
       WireProtocol wireProtocol,
       BongoSocketPool socketPool,
       BlockingQueue<ServerDescription> clusterEvents,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec,
       MongoServer listener) {
     this.serverAddress = serverAddress;

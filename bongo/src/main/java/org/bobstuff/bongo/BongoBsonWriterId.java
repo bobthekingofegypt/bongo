@@ -2,17 +2,18 @@ package org.bobstuff.bongo;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
 import org.bobstuff.bobbson.ContextStack;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bobbson.writer.BsonWriter;
+import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bson.types.ObjectId;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 
-public class BongoBsonWriterId extends BsonWriter {
+public class BongoBsonWriterId extends StackBsonWriter {
   private int contextLevel;
   private static String ID_KEY = "_id";
   private static byte[] ID_KEY_BYTES = "_id".getBytes();
@@ -21,12 +22,12 @@ public class BongoBsonWriterId extends BsonWriter {
   private @Nullable String lastName;
   private byte @Nullable [] writtenId;
 
-  public BongoBsonWriterId(@UnknownKeyFor @NonNull @Initialized BufferDataPool bufferDataPool) {
+  public BongoBsonWriterId(@UnknownKeyFor @NonNull @Initialized BobBsonBufferPool bufferDataPool) {
     super(bufferDataPool);
   }
 
   public BongoBsonWriterId(
-      @UnknownKeyFor @NonNull @Initialized BufferDataPool bufferDataPool,
+      @UnknownKeyFor @NonNull @Initialized BobBsonBufferPool bufferDataPool,
       @UnknownKeyFor @NonNull @Initialized ContextStack contextStack) {
     super(bufferDataPool, contextStack);
   }

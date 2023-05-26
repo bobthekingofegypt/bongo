@@ -5,10 +5,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.BsonWriterOptions;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-@CompiledBson
+@GenerateBobBsonConverter
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

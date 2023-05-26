@@ -1,11 +1,11 @@
 package org.bobstuff.bongo.messages;
 
 import lombok.Data;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.bson.BsonDocument;
 
 @Data
-@CompiledBson
+@GenerateBobBsonConverter
 public class BongoBulkWriteError {
   private int index;
   private int code;

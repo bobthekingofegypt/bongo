@@ -1,8 +1,9 @@
 package org.bobstuff.bongo.models;
 
-import org.bobstuff.bobbson.annotations.CompiledBson;
 
-@CompiledBson
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
+
+@GenerateBobBsonConverter
 public class CustomResponseClass {
   private int total;
 

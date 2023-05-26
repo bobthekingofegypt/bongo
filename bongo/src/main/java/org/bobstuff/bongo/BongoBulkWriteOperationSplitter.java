@@ -5,8 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.bobstuff.bobbson.BobBsonBuffer;
+
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.writer.BsonWriter;
+import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.exception.BongoException;
 
@@ -72,7 +74,7 @@ public class BongoBulkWriteOperationSplitter<TModel> implements BongoBulkOperati
     var writer =
         switch (operationType) {
           case Insert -> new BongoBsonWriterId(buffer);
-          default -> new BsonWriter(buffer);
+          default -> new StackBsonWriter(buffer);
         };
 
     do {

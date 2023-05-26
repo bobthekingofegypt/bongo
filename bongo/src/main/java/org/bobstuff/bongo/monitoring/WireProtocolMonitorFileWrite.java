@@ -5,9 +5,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BsonReader;
-import org.bobstuff.bobbson.DynamicBobBsonBuffer;
+import org.bobstuff.bobbson.BsonReaderStack;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.DynamicBobBsonBuffer;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bson.BsonDocument;
 
@@ -20,7 +21,7 @@ public class WireProtocolMonitorFileWrite implements WireProtocolMonitor {
   @Override
   public void onReadServerResponse(BobBsonBuffer buffer) {
         buffer.setHead(5);
-        var readerDebug = new BsonReader(buffer);
+        var readerDebug = new BsonReaderStack(buffer);
         var responseDebug = codec.decode(BsonDocument.class, readerDebug);
         if (responseDebug != null) {
           System.out.println("*********************");

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import org.bobstuff.bobbson.BobBsonConverter;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.messages.BongoFindRequest;
@@ -45,7 +45,7 @@ public class ReadExecutionConcurrentFetchers<TModel> implements ReadExecutionStr
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoConnectionProvider connectionProvider) {
     if (!(bongoRequest instanceof BongoFindRequest)) {
       throw new UnsupportedOperationException(

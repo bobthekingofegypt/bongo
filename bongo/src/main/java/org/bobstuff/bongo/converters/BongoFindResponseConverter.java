@@ -2,9 +2,9 @@ package org.bobstuff.bongo.converters;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -74,7 +74,7 @@ public class BongoFindResponseConverter<TModel>
     var readResponse = new BongoFindResponse<TModel>();
 
     reader.readStartDocument();
-    BobBsonBuffer.ByteRangeComparitor range = reader.getFieldName();
+    BobBsonBuffer.ByteRangeComparator range = reader.getFieldName();
     while (reader.readBsonType() != org.bobstuff.bobbson.BsonType.END_OF_DOCUMENT) {
       if (range.equalsArray(cursorKey, cursorHash)) {
         reader.readStartDocument();

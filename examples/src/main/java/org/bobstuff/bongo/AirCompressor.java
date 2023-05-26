@@ -2,8 +2,8 @@ package org.bobstuff.bongo;
 
 import io.airlift.compress.zstd.ZstdCompressor;
 import io.airlift.compress.zstd.ZstdDecompressor;
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.compressors.BongoCompressor;
 
 public class AirCompressor implements BongoCompressor {
@@ -18,12 +18,12 @@ public class AirCompressor implements BongoCompressor {
   }
 
   @Override
-  public BobBsonBuffer compress(byte[] data, BufferDataPool bufferPool) {
+  public BobBsonBuffer compress(byte[] data, BobBsonBufferPool bufferPool) {
     return compress(data, 0, data.length, bufferPool);
   }
 
   @Override
-  public BobBsonBuffer compress(byte[] data, int offset, int length, BufferDataPool bufferPool) {
+  public BobBsonBuffer compress(byte[] data, int offset, int length, BobBsonBufferPool bufferPool) {
     ZstdCompressor compressor = new ZstdCompressor();
     var outBuffer = bufferPool.allocate((int) compressor.maxCompressedLength(length - offset));
     byte[] out = outBuffer.getArray();

@@ -13,6 +13,7 @@ public class BongoWriteRequestConverter implements BobBsonConverter<BongoWriteRe
     var col = identifier.getCollectionName();
     var type = value.getType();
     var ordered = value.isOrdered();
+    var comment = value.getComment();
 
     bsonWriter.writeStartDocument();
     bsonWriter.writeString(type.getCommand(), col);
@@ -20,6 +21,10 @@ public class BongoWriteRequestConverter implements BobBsonConverter<BongoWriteRe
 
     // TODO should I make ordered a Boolean not a primitive?
     bsonWriter.writeBoolean("ordered", ordered);
+
+    if (comment != null) {
+      bsonWriter.writeString("comment", comment);
+    }
 
     bsonWriter.writeEndDocument();
   }

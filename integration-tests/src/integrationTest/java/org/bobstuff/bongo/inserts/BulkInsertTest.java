@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
-import org.bobstuff.bobbson.buffer.BobBufferPool;
+import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
@@ -50,7 +50,7 @@ public class BulkInsertTest {
                     .compressor(new BongoCompressorZstd(3))
                     .host(mongoUrl.toString())
                     .build())
-            .bufferPool(new BobBufferPool())
+            .bufferPool(new ConcurrentBobBsonBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())
             .codec(new BongoCodecBobBson(bobBson))
             .build();

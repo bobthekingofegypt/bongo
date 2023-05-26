@@ -9,8 +9,8 @@ import java.net.Socket;
 import java.util.List;
 import javax.net.SocketFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.auth.BongoAuthenticator;
 import org.bobstuff.bongo.compressors.BongoCompressor;
@@ -30,7 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class BongoSocket {
   private final ServerAddress serverAddress;
   private final BongoAuthenticator authenticator;
-  private final BufferDataPool bufferPool;
+  private final BobBsonBufferPool bufferPool;
 
   private @Nullable BongoSocketPool socketPool;
 
@@ -54,7 +54,7 @@ public class BongoSocket {
       BongoSocketInitialiser initialiser,
       BongoAuthenticator authenticator,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool) {
+      BobBsonBufferPool bufferPool) {
     this.serverAddress = serverAddress;
     this.authenticator = authenticator;
     this.initialiser = initialiser;

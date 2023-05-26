@@ -1,7 +1,7 @@
 package org.bobstuff.bongo.vibur;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.auth.BongoAuthenticator;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -13,7 +13,7 @@ import org.vibur.objectpool.PoolObjectFactory;
 public class BongoSocketFactoryVibur implements PoolObjectFactory<BongoSocket> {
   private final ServerAddress serverAddress;
   private final BongoAuthenticator authenticator;
-  private final BufferDataPool bufferPool;
+  private final BobBsonBufferPool bufferPool;
 
   private final WireProtocol wireProtocol;
   private BongoSocketInitialiser socketInitialiser;
@@ -23,7 +23,7 @@ public class BongoSocketFactoryVibur implements PoolObjectFactory<BongoSocket> {
       BongoSocketInitialiser socketInitialiser,
       BongoAuthenticator authenticator,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool) {
+      BobBsonBufferPool bufferPool) {
     this.serverAddress = serverAddress;
     this.authenticator = authenticator;
     this.socketInitialiser = socketInitialiser;

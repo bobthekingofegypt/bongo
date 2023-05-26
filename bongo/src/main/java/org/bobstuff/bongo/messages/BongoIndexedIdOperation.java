@@ -3,11 +3,11 @@ package org.bobstuff.bongo.messages;
 import lombok.Data;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.BsonConverter;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.bobstuff.bongo.converters.BongoObjectIdConverter;
 
 @Data
-@CompiledBson
+@GenerateBobBsonConverter
 public class BongoIndexedIdOperation {
   private int index;
 

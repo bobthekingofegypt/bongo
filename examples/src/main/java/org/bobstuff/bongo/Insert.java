@@ -6,7 +6,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
-import org.bobstuff.bobbson.buffer.BobBufferPool;
+import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
@@ -35,7 +35,7 @@ public class Insert {
                     //                            .authSource("admin")
                     //                            .build())
                     .build())
-            .bufferPool(new BobBufferPool())
+            .bufferPool(new ConcurrentBobBsonBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())
             .codec(new BongoCodecBobBson(bobBson))
             .build();

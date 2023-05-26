@@ -1,7 +1,11 @@
 package org.bobstuff.bongo;
 
 import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.DynamicBobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bobbson.writer.BsonWriter;
+import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bobstuff.bongo.compressors.BongoCompressor;
 import org.bobstuff.bongo.connection.BongoRequestIDGenerator;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -14,19 +18,19 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class WireProtocol {
-  private final BufferDataPool bufferPool;
+  private final BobBsonBufferPool bufferPool;
 
   private final BongoRequestIDGenerator requestIDGenerator;
 
   private final @MonotonicNonNull WireProtocolMonitor monitor;
 
   public WireProtocol(
-      BufferDataPool bufferPool, BongoRequestIDGenerator requestIDGenerator) {
+      BobBsonBufferPool bufferPool, BongoRequestIDGenerator requestIDGenerator) {
     this(bufferPool, requestIDGenerator, null);
   }
 
   public WireProtocol(
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoRequestIDGenerator requestIDGenerator,
       @Nullable WireProtocolMonitor monitor) {
     this.bufferPool = bufferPool;
@@ -120,7 +124,7 @@ public class WireProtocol {
     int flagBits = messageBuffer.getInt();
     messageBuffer.getByte(); // section byte
 
-    var reader = new BsonReader(messageBuffer);
+    var reader = new BsonReaderStack(messageBuffer);
     var response = converter.read(reader);
     if (response == null) {
       throw new BongoSocketReadException(
@@ -186,7 +190,7 @@ public class WireProtocol {
     buffer.writeInteger(flagBits); // flag bits
     buffer.writeByte((byte) 0);
 
-    var bsonOutput = new BsonWriter(buffer);
+    var bsonOutput = new StackBsonWriter(buffer);
     converter.write(bsonOutput, value);
 
     if (payload != null) {

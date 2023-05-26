@@ -3,9 +3,9 @@ package org.bobstuff.bongo.models;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
-@CompiledBson
+@GenerateBobBsonConverter
 @Builder
 @Data
 @AllArgsConstructor

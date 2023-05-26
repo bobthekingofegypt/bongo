@@ -10,7 +10,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
-import org.bobstuff.bobbson.buffer.BobBufferPool;
+import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
@@ -57,7 +57,7 @@ public class BasicFindThreadedBenchmark {
                       .host("192.168.1.138:27027")
                       .compressor(new BongoCompressorZstd())
                       .build())
-              .bufferPool(new BobBufferPool())
+              .bufferPool(new ConcurrentBobBsonBufferPool())
               .socketPoolProvider(new BongoSocketPoolProviderVibur())
               .codec(new BongoCodecBobBson(bobBson))
               .build();

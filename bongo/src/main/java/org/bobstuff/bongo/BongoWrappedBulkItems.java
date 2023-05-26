@@ -3,8 +3,8 @@ package org.bobstuff.bongo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BobBsonConverter;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bongo.exception.BongoException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 

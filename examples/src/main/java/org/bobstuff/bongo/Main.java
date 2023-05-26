@@ -3,7 +3,7 @@ package org.bobstuff.bongo;
 import com.google.common.base.Stopwatch;
 import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
-import org.bobstuff.bobbson.buffer.BobBufferPool;
+import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.auth.BongoCredentials;
 import org.bobstuff.bongo.codec.BongoCodecBobBson;
@@ -34,7 +34,7 @@ public class Main {
                             .authSource("admin")
                             .build())
                     .build())
-            .bufferPool(new BobBufferPool())
+            .bufferPool(new ConcurrentBobBsonBufferPool())
             .socketPoolProvider(new BongoSocketPoolProviderVibur())
             .codec(codec)
             .wireProtocolMonitor(new WireProtocolMonitorFileWrite(codec))

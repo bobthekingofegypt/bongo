@@ -5,10 +5,10 @@ import java.util.concurrent.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BobBsonBuffer;
-import org.bobstuff.bobbson.BufferDataPool;
-import org.bobstuff.bobbson.DynamicBobBsonBuffer;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
+import org.bobstuff.bobbson.buffer.DynamicBobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -51,7 +51,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
       BongoCollection.Identifier identifier,
       BongoBulkOperationSplitter<TModel> splitter,
       BongoBulkWriteOptions options,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
@@ -215,7 +215,7 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             while (splitter.hasMore()) {
               var type = splitter.nextType();
               var request =
-                  new BongoWriteRequest(type, identifier, writeConcern, options.isOrdered());
+                  new BongoWriteRequest(type, identifier, writeConcern, options.isOrdered(), options.getComment());
 
               var indexMap = new BongoIndexMap();
 

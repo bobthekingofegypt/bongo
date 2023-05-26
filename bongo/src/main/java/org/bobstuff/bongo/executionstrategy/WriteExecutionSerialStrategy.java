@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -22,7 +22,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
       BongoCollection.Identifier identifier,
       BongoBulkOperationSplitter<TModel> splitter,
       BongoBulkWriteOptions options,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec,
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
@@ -113,7 +113,7 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
     while (splitter.hasMore()) {
       var operationType = splitter.nextType();
       var request =
-          new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered());
+          new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered(), options.getComment());
 
       var indexMap = new BongoIndexMap();
       var payload =

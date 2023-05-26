@@ -5,6 +5,8 @@ import static org.bobstuff.bongo.BongoDbBatchBlockingCursor.*;
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.*;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.compressors.BongoCompressor;
@@ -60,7 +62,7 @@ public class ReadExecutionConcurrentStrategy<TModel> implements ReadExecutionStr
       BongoCursorType cursorType,
       WireProtocol wireProtocol,
       BongoCodec codec,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoConnectionProvider connectionProvider) {
     if (closed || aborted || started) {
       throw new BongoException("Attempt to reuse ReadExecutionStrategy");

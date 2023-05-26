@@ -1,6 +1,6 @@
 package org.bobstuff.bongo;
 
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.topology.BongoConnectionProvider;
 
@@ -10,13 +10,13 @@ public class BongoDatabase {
 
   private BongoCodec codec;
   private WireProtocol wireProtocol;
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
 
   public BongoDatabase(
       String databaseName,
       BongoConnectionProvider connectionProvider,
       BongoCodec codec,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       WireProtocol wireProtocol) {
     this.databaseName = databaseName;
     this.connectionProvider = connectionProvider;

@@ -3,7 +3,7 @@ package org.bobstuff.bongo;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.exception.BongoException;
 import org.bobstuff.bongo.executionstrategy.*;
@@ -18,7 +18,7 @@ public class BongoCollection<TModel> {
   private BongoCodec codec;
 
   private WireProtocol wireProtocol;
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
 
   private BongoWriteConcern writeConcern;
 
@@ -27,7 +27,7 @@ public class BongoCollection<TModel> {
       Class<TModel> model,
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec) {
     this(
         identifier,
@@ -44,7 +44,7 @@ public class BongoCollection<TModel> {
       Class<TModel> model,
       BongoConnectionProvider connectionProvider,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec,
       BongoWriteConcern writeConcern) {
     this.identifier = identifier;

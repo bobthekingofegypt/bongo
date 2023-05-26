@@ -2,7 +2,7 @@ package org.bobstuff.bongo.topology;
 
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.connection.BongoSocket;
@@ -26,7 +26,7 @@ class MongoServer {
   private ExecutorService monitorExecutor;
 
   private @MonotonicNonNull Future<?> monitorFuture;
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
   private BongoCodec codec;
 
   private @MonotonicNonNull ServerMonitor serverMonitor;
@@ -38,7 +38,7 @@ class MongoServer {
       ServerAddress serverAddress,
       WireProtocol wireProtocol,
       BongoSocketPool socketPool,
-      BufferDataPool bufferPool,
+      BobBsonBufferPool bufferPool,
       BongoCodec codec,
       ExecutorService monitorExecutor,
       BlockingQueue<ServerDescription> clusterEvents) {

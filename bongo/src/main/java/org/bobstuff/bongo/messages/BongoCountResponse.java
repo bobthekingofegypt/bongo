@@ -1,10 +1,10 @@
 package org.bobstuff.bongo.messages;
 
 import lombok.Data;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @Data
-@CompiledBson
+@GenerateBobBsonConverter
 public class BongoCountResponse {
   private double ok;
   private long n;

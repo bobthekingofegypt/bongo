@@ -1,7 +1,7 @@
 package org.bobstuff.bongo.vibur;
 
 import lombok.NonNull;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.auth.BongoAuthenticator;
 import org.bobstuff.bongo.connection.BongoSocketInitialiser;
@@ -26,7 +26,7 @@ public class BongoSocketPoolProviderVibur implements BongoSocketPoolProvider {
       BongoSocketInitialiser socketInitialiser,
       BongoAuthenticator authenticator,
       WireProtocol wireProtocol,
-      BufferDataPool bufferPool) {
+      BobBsonBufferPool bufferPool) {
     BongoSocketFactoryVibur socketFactory =
         new BongoSocketFactoryVibur(
             serverAddress, socketInitialiser, authenticator, wireProtocol, bufferPool);

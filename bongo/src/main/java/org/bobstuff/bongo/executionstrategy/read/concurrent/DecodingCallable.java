@@ -3,10 +3,11 @@ package org.bobstuff.bongo.executionstrategy.read.concurrent;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BobBsonBuffer;
 import org.bobstuff.bobbson.BsonReader;
-import org.bobstuff.bobbson.BufferDataPool;
+import org.bobstuff.bobbson.BsonReaderStack;
+import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
+import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 
@@ -17,13 +18,13 @@ public class DecodingCallable<TModel> implements Callable<Void> {
   private BlockingQueue<BobBsonBuffer> decodeQueue;
   private BongoFindResponseConverter<TModel> findResponseConverter;
   private BlockingQueue<BongoFindResponse<TModel>> responses;
-  private BufferDataPool bufferPool;
+  private BobBsonBufferPool bufferPool;
 
   public DecodingCallable(
       BlockingQueue<BobBsonBuffer> decodeQueue,
       BlockingQueue<BongoFindResponse<TModel>> responses,
       BongoFindResponseConverter<TModel> findResponseConverter,
-      BufferDataPool bufferPool) {
+      BobBsonBufferPool bufferPool) {
     this.decodeQueue = decodeQueue;
     this.findResponseConverter = findResponseConverter;
     this.bufferPool = bufferPool;
@@ -47,7 +48,7 @@ public class DecodingCallable<TModel> implements Callable<Void> {
         }
         log.debug("decoding a new entry");
         buffer.setHead(5);
-        BsonReader reader = new BsonReader(buffer);
+        BsonReader reader = new BsonReaderStack(buffer);
         var result = findResponseConverter.read(reader);
 
         bufferPool.recycle(buffer);

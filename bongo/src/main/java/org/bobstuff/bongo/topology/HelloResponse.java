@@ -2,9 +2,9 @@ package org.bobstuff.bongo.topology;
 
 import java.util.List;
 import lombok.Data;
-import org.bobstuff.bobbson.annotations.CompiledBson;
+import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
-@CompiledBson
+@GenerateBobBsonConverter
 @Data
 public class HelloResponse {
   public static final double OK_RESPONSE = 1.0;

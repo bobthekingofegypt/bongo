@@ -15,4 +15,5 @@ public class BongoWriteRequest {
   private BongoCollection.Identifier identifier;
   private BongoWriteConcern writeConcern;
   private boolean ordered;
+  private String comment;
 }
