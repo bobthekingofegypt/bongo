@@ -3,8 +3,10 @@ package org.bobstuff.bongo.converters;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.bobstuff.bobbson.BobBsonConverter;
-import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.BsonType;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
+import org.bobstuff.bobbson.reader.BsonReader;
+import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -112,5 +114,18 @@ public class BongoFindResponseConverter<TModel>
     }
 
     return readResponse;
+  }
+
+  @Override
+  public @Nullable BongoFindResponse<TModel> readValue(
+      @UnknownKeyFor @NonNull @Initialized BsonReader bsonReader,
+      @UnknownKeyFor @NonNull @Initialized BsonType type) {
+    throw new UnsupportedOperationException("method not used");
+  }
+
+  @Override
+  public void writeValue(
+      @UnknownKeyFor @NonNull @Initialized BsonWriter bsonWriter, BongoFindResponse<TModel> value) {
+    throw new UnsupportedOperationException("method not used");
   }
 }

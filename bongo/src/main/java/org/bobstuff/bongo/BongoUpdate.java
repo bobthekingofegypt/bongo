@@ -2,7 +2,6 @@ package org.bobstuff.bongo;
 
 import java.util.List;
 import org.bobstuff.bobbson.annotations.BsonAttribute;
-import org.bobstuff.bobbson.annotations.BsonWriterOptions;
 import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.nullness.qual.Nullable;

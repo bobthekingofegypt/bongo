@@ -1,10 +1,10 @@
 package org.bobstuff.bongo;
 
-import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.buffer.DynamicBobBsonBuffer;
 import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
-import org.bobstuff.bobbson.writer.BsonWriter;
+import org.bobstuff.bobbson.reader.StackBsonReader;
 import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bobstuff.bongo.compressors.BongoCompressor;
 import org.bobstuff.bongo.connection.BongoRequestIDGenerator;
@@ -24,8 +24,7 @@ public class WireProtocol {
 
   private final @MonotonicNonNull WireProtocolMonitor monitor;
 
-  public WireProtocol(
-      BobBsonBufferPool bufferPool, BongoRequestIDGenerator requestIDGenerator) {
+  public WireProtocol(BobBsonBufferPool bufferPool, BongoRequestIDGenerator requestIDGenerator) {
     this(bufferPool, requestIDGenerator, null);
   }
 
@@ -124,7 +123,7 @@ public class WireProtocol {
     int flagBits = messageBuffer.getInt();
     messageBuffer.getByte(); // section byte
 
-    var reader = new BsonReaderStack(messageBuffer);
+    var reader = new StackBsonReader(messageBuffer);
     var response = converter.read(reader);
     if (response == null) {
       throw new BongoSocketReadException(

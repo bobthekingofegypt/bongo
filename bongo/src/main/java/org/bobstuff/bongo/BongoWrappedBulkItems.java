@@ -46,7 +46,8 @@ public class BongoWrappedBulkItems<TModel> {
       if (insertProcessor != null) {
         insertProcessor.process(writer, item, i);
       }
-      converter.write(writer, item, false);
+      // TODO DELETE THIS?
+      converter.write(writer, item);
       writer.writeEndDocument();
 
       var writtenId = writer.getWrittenId();

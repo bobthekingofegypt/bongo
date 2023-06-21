@@ -7,10 +7,10 @@ plugins {
 dependencies {
     implementation project(':bongo')
     implementation project(':data:models')
-    annotationProcessor 'org.bobstuff.bobbson:processor:1.0'
-    implementation 'org.bobstuff.bobbson:core:1.0'
+    annotationProcessor 'com.github.bobthekingofegypt.bobbson:processor:0.9.1'
+    implementation 'com.github.bobthekingofegypt.bobbson:bobbson:0.9.1'
+    implementation 'com.github.bobthekingofegypt.bobbson:bobbson-mongodb:0.9.1'
     implementation 'ch.qos.logback:logback-classic:1.4.4'
-    implementation('org.bobstuff.bobbson:mongodb:1.0')
     implementation 'org.mongodb:bson:4.5.0'
     implementation 'org.mongodb:mongodb-driver-core:4.5.0'
     implementation 'org.mongodb:mongodb-driver-sync:4.5.0'

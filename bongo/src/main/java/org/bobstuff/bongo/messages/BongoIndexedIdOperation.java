@@ -12,6 +12,6 @@ public class BongoIndexedIdOperation {
   private int index;
 
   @BsonAttribute("_id")
-  @BsonConverter(target = BongoObjectIdConverter.class)
+  @BsonConverter(BongoObjectIdConverter.class)
   private byte[] objectId;
 }

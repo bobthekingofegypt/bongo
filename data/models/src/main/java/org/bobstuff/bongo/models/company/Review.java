@@ -19,6 +19,6 @@ public class Review {
   private String text;
   private String title;
 
-  @BsonConverter(target = InstantConverter.class)
+  @BsonConverter(InstantConverter.class)
   private Instant postedAt;
 }

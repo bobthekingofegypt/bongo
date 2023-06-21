@@ -4,8 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.bobstuff.bobbson.ContextStack;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
-import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
-import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bson.types.ObjectId;
 import org.checkerframework.checker.initialization.qual.Initialized;
@@ -20,17 +18,8 @@ public class BongoBsonWriterId extends StackBsonWriter {
 
   private boolean hasWrittenId;
   private @Nullable String lastName;
+  private byte @Nullable [] lastNameBytes;
   private byte @Nullable [] writtenId;
-
-  public BongoBsonWriterId(@UnknownKeyFor @NonNull @Initialized BobBsonBufferPool bufferDataPool) {
-    super(bufferDataPool);
-  }
-
-  public BongoBsonWriterId(
-      @UnknownKeyFor @NonNull @Initialized BobBsonBufferPool bufferDataPool,
-      @UnknownKeyFor @NonNull @Initialized ContextStack contextStack) {
-    super(bufferDataPool, contextStack);
-  }
 
   public BongoBsonWriterId(@UnknownKeyFor @NonNull @Initialized BobBsonBuffer buffer) {
     super(buffer);
@@ -107,11 +96,14 @@ public class BongoBsonWriterId extends StackBsonWriter {
   @Override
   public void writeName(@NonNull String name) {
     lastName = name;
+    lastNameBytes = null;
     super.writeName(name);
   }
 
   @Override
   public void writeName(byte @NonNull [] name) {
+    lastName = null;
+    lastNameBytes = name;
     super.writeName(name);
   }
 
@@ -126,7 +118,9 @@ public class BongoBsonWriterId extends StackBsonWriter {
 
   @Override
   public void writeObjectId(byte @NonNull [] value) {
-    if (contextLevel == 1 && ID_KEY.equals(lastName)) {
+    if (contextLevel == 1
+        && ((lastNameBytes != null && Arrays.equals(ID_KEY_BYTES, lastNameBytes))
+            || (ID_KEY.equals(lastName)))) {
       hasWrittenId = true;
       writtenId = value;
     }

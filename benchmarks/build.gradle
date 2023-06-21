@@ -9,8 +9,8 @@ plugins {
 dependencies {
     implementation project(':bongo')
     implementation project(':data:models')
-    annotationProcessor 'org.bobstuff.bobbson:processor:1.0'
-    implementation 'org.bobstuff.bobbson:core:1.0'
+    annotationProcessor "com.github.bobthekingofegypt.bobbson:processor:${bobbsonVersion}"
+    implementation "com.github.bobthekingofegypt.bobbson:bobbson:${bobbsonVersion}"
     implementation 'ch.qos.logback:logback-classic:1.4.4'
     implementation('org.bobstuff.bobbson:mongodb:1.0')
     implementation 'org.mongodb:bson:4.9.0'
@@ -35,7 +35,8 @@ application {
 }
 
 jmh {
-    includes = ['CompanyBulkWriteBenchmark']
+    includes = ['BasicFindBenchmarkLimit']
+//    includes = ['CompanyBulkWriteBenchmark']
 //    includes = ['BasicInsertBenchmark']
 
 //    includes = ['SimpleWriteLotsInts']

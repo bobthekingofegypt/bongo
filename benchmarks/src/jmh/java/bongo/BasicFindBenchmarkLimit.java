@@ -1,14 +1,11 @@
 package bongo;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
@@ -19,7 +16,8 @@ import org.bobstuff.bongo.codec.BongoCodecBobBson;
 import org.bobstuff.bongo.compressors.BongoCompressorZstd;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionConcurrentStrategy;
 import org.bobstuff.bongo.executionstrategy.ReadExecutionSerialStrategy;
-import org.bobstuff.bongo.models.company.Company;
+import org.bobstuff.bongo.models.Person;
+import org.bobstuff.bongo.models.Scores;
 import org.bobstuff.bongo.vibur.BongoSocketPoolProviderVibur;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -28,19 +26,25 @@ import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 @BenchmarkMode({Mode.AverageTime})
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Measurement(iterations = 20, time = 1, timeUnit = MINUTES)
-public class BasicFindCompanyBenchmark {
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@Measurement(iterations = 20, time = 60000, timeUnit = MILLISECONDS)
+public class BasicFindBenchmarkLimit {
+
+  private static int LIMIT = 10;
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
     public BongoDatabase bongoDatabase;
-    public BongoCollection<Company> collection;
+    public BongoCollection<Person> collection;
 
     public BongoCodec codec;
 
-    public ReadExecutionConcurrentStrategy<Company> concurrentStrategy;
+    public ReadExecutionConcurrentStrategy<Person> concurrentStrategy;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -51,15 +55,14 @@ public class BasicFindCompanyBenchmark {
       var settings =
           BongoSettings.builder()
               .connectionSettings(
-                  BongoConnectionSettings.builder()
-                      .host("192.168.1.139:27017")
+                      BongoConnectionSettings.builder().credentials(
+                                                     BongoCredentials.builder()
+                                                                     .username("admin")
+                                                                     .authSource("admin")
+                                                                     .password("speal")
+                                                                     .build())
+                                             .host("192.168.1.139:27017")
                       .compressor(new BongoCompressorZstd())
-                      .credentials(
-                          BongoCredentials.builder()
-                              .authSource("admin")
-                              .username("admin")
-                              .password("speal")
-                              .build())
                       .build())
               .bufferPool(new ConcurrentBobBsonBufferPool())
               .socketPoolProvider(new BongoSocketPoolProviderVibur())
@@ -70,9 +73,9 @@ public class BasicFindCompanyBenchmark {
       bongo.connect();
 
       var database = bongo.getDatabase("test_data");
-      var collection = database.getCollection("companies", Company.class);
+      var collection = database.getCollection("people4", Person.class);
 
-      this.concurrentStrategy = new ReadExecutionConcurrentStrategy<Company>(3);
+      this.concurrentStrategy = new ReadExecutionConcurrentStrategy<Person>(3);
       this.bongoClient = bongo;
       this.bongoDatabase = database;
       this.collection = collection;
@@ -90,12 +93,13 @@ public class BasicFindCompanyBenchmark {
   public static class MyMongoClient {
     public MongoClient client;
     public MongoDatabase mongoDatabase;
-    public MongoCollection<Company> mongoCollection;
+    public MongoCollection<Person> mongoCollection;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
       PojoCodecProvider.Builder providerBuilder = PojoCodecProvider.builder();
-
+      providerBuilder.register(Person.class);
+      providerBuilder.register(Scores.class);
       var provider = providerBuilder.build();
       CodecRegistry pojoCodecRegistry =
           CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build());
@@ -110,13 +114,11 @@ public class BasicFindCompanyBenchmark {
                     builder.connectTimeout(1, TimeUnit.DAYS);
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
-              .applyConnectionString(
-                  new ConnectionString(
-                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin"))
+              .applyConnectionString(new ConnectionString("mongodb://admin:speal@192.168.1.139:27017/?authSource=admin"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
-      mongoCollection = mongoDatabase.getCollection("companies", Company.class);
+      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
     }
 
     @TearDown(Level.Trial)
@@ -129,11 +131,13 @@ public class BasicFindCompanyBenchmark {
   public static class MyMongoClientComp {
     public MongoClient client;
     public MongoDatabase mongoDatabase;
-    public MongoCollection<Company> mongoCollection;
+    public MongoCollection<Person> mongoCollection;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
       PojoCodecProvider.Builder providerBuilder = PojoCodecProvider.builder();
+      providerBuilder.register(Person.class);
+      providerBuilder.register(Scores.class);
       var provider = providerBuilder.build();
       CodecRegistry pojoCodecRegistry =
           CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build());
@@ -149,12 +153,11 @@ public class BasicFindCompanyBenchmark {
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
               .applyConnectionString(
-                  new ConnectionString(
-                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin&compressors=zstd"))
+                  new ConnectionString("mongodb://admin:speal@192.168.1.139:27017/?authSource=admin&compressors=zstd"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
-      mongoCollection = mongoDatabase.getCollection("companies", Company.class);
+      mongoCollection = mongoDatabase.getCollection("people4", Person.class);
     }
 
     @TearDown(Level.Trial)
@@ -168,9 +171,10 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Company>())
+            .find(new ReadExecutionSerialStrategy<Person>())
             .compress(false)
             .cursorType(BongoCursorType.Default)
+                .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -190,6 +194,7 @@ public class BasicFindCompanyBenchmark {
             .find(state.concurrentStrategy)
             .compress(true)
             .cursorType(BongoCursorType.Default)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -206,9 +211,10 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Company>())
+            .find(new ReadExecutionSerialStrategy<Person>())
             .compress(true)
             .cursorType(BongoCursorType.Default)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -228,6 +234,7 @@ public class BasicFindCompanyBenchmark {
             .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -239,13 +246,13 @@ public class BasicFindCompanyBenchmark {
 
   @Benchmark
   public void bongoConc1(Blackhole bh, MyBongoClient state) {
-    var strategy = new ReadExecutionConcurrentStrategy<Company>(1);
     var iter =
         state
             .collection
-            .find(strategy)
+            .find(new ReadExecutionConcurrentStrategy<Person>(1))
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -253,19 +260,17 @@ public class BasicFindCompanyBenchmark {
       iter.next();
       i += 1;
     }
-
-    strategy.close();
   }
 
   @Benchmark
   public void bongoConc3(Blackhole bh, MyBongoClient state) {
-    var strategy = new ReadExecutionConcurrentStrategy<Company>(3);
     var iter =
         state
             .collection
-            .find(strategy)
+            .find(new ReadExecutionConcurrentStrategy<Person>(3))
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -273,7 +278,6 @@ public class BasicFindCompanyBenchmark {
       iter.next();
       i += 1;
     }
-    strategy.close();
   }
 
   @Benchmark
@@ -281,9 +285,10 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Company>())
+            .find(new ReadExecutionSerialStrategy<Person>())
             .cursorType(BongoCursorType.Exhaustible)
             .compress(false)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -300,8 +305,9 @@ public class BasicFindCompanyBenchmark {
     var iter =
         state
             .collection
-            .find(new ReadExecutionSerialStrategy<Company>())
+            .find(new ReadExecutionSerialStrategy<Person>())
             .cursorType(BongoCursorType.Exhaustible)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -320,6 +326,7 @@ public class BasicFindCompanyBenchmark {
             .collection
             .find(state.concurrentStrategy)
             .cursorType(BongoCursorType.Exhaustible)
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;
@@ -334,7 +341,7 @@ public class BasicFindCompanyBenchmark {
   @Benchmark
   public void mongo(Blackhole bh, MyMongoClient state) {
     int i;
-    try (var iter = state.mongoCollection.find().iterator()) {
+    try (var iter = state.mongoCollection.find().limit(LIMIT).iterator()) {
 
       i = 0;
       while (iter.hasNext()) {
@@ -349,7 +356,7 @@ public class BasicFindCompanyBenchmark {
   @Benchmark
   public void mongoComp(Blackhole bh, MyMongoClientComp state) {
     int i;
-    try (var iter = state.mongoCollection.find().iterator()) {
+    try (var iter = state.mongoCollection.find().limit(LIMIT).iterator()) {
 
       i = 0;
       while (iter.hasNext()) {

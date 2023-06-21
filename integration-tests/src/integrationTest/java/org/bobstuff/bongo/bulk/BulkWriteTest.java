@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Random;
 import net.datafaker.Faker;
 import org.bobstuff.bobbson.BobBson;
+import org.bobstuff.bobbson.BobBsonConfig;
 import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
 import org.bobstuff.bongo.*;
@@ -37,7 +38,8 @@ public class BulkWriteTest {
 
   @BeforeEach
   public void setup(@MongoUrl ServerAddress mongoUrl) {
-    var bobBson = new BobBson();
+    var bobBson =
+        new BobBson(BobBsonConfig.Builder.builder().withScanning(true).withReflection().build());
     BsonValueConverters.register(bobBson);
     bobBson.registerConverter(ObjectId.class, new BongoObjectIdConverter());
 

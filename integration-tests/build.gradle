@@ -26,8 +26,8 @@ testing {
                 implementation 'com.google.guava:guava:31.1-jre'
                 implementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.8.2'
                 implementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.4.0'
-                implementation 'org.bobstuff.bobbson:core:1.0'
-                implementation('org.bobstuff.bobbson:mongodb:1.0')
+                implementation "com.github.bobthekingofegypt.bobbson:bobbson:${bobbsonVersion}"
+                implementation "com.github.bobthekingofegypt.bobbson:bobbson-mongodb:${bobbsonVersion}"
                 implementation 'org.mongodb:mongodb-driver-core:4.5.0'
                 implementation 'org.mongodb:bson:4.5.0'
                 implementation("net.datafaker:datafaker:1.7.0")

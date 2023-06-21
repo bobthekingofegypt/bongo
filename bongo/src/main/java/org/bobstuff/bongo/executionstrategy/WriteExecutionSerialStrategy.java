@@ -113,7 +113,8 @@ public class WriteExecutionSerialStrategy<TModel> implements WriteExecutionStrat
     while (splitter.hasMore()) {
       var operationType = splitter.nextType();
       var request =
-          new BongoWriteRequest(operationType, identifier, writeConcern, options.isOrdered(), options.getComment());
+          new BongoWriteRequest(
+              operationType, identifier, writeConcern, options.isOrdered(), options.getComment());
 
       var indexMap = new BongoIndexMap();
       var payload =

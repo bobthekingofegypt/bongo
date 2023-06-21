@@ -6,9 +6,9 @@ plugins {
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
-    annotationProcessor 'org.bobstuff.bobbson:processor:1.0'
-    implementation 'org.bobstuff.bobbson:core:1.0'
-    implementation('org.bobstuff.bobbson:mongodb:1.0')
+    annotationProcessor "com.github.bobthekingofegypt.bobbson:processor:${bobbsonVersion}"
+    implementation "com.github.bobthekingofegypt.bobbson:bobbson:${bobbsonVersion}"
+    implementation "com.github.bobthekingofegypt.bobbson:bobbson-mongodb:${bobbsonVersion}"
     implementation 'org.mongodb:bson:4.5.0'
     implementation 'org.checkerframework:checker-qual:3.28.0'
     implementation("net.datafaker:datafaker:1.7.0")

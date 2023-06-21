@@ -1,7 +1,7 @@
 package org.bobstuff.bongo.codec;
 
 import org.bobstuff.bobbson.BobBsonConverter;
-import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.reader.BsonReader;
 
 public interface BongoCodec {
   <T> T decode(Class<T> clazz, BsonReader reader);

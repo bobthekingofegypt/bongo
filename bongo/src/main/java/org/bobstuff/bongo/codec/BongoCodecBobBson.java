@@ -2,7 +2,7 @@ package org.bobstuff.bongo.codec;
 
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.BobBsonConverter;
-import org.bobstuff.bobbson.BsonReader;
+import org.bobstuff.bobbson.reader.BsonReader;
 import org.bobstuff.bongo.BongoWriteConcern;
 import org.bobstuff.bongo.exception.BongoCodecException;
 import org.bobstuff.bongo.messages.BongoWriteConcernConverter;

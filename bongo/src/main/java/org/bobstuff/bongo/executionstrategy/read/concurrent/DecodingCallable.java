@@ -3,11 +3,11 @@ package org.bobstuff.bongo.executionstrategy.read.concurrent;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.BsonReader;
-import org.bobstuff.bobbson.BsonReaderStack;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.buffer.BobBufferBobBsonBuffer;
 import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
+import org.bobstuff.bobbson.reader.BsonReader;
+import org.bobstuff.bobbson.reader.StackBsonReader;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
 import org.bobstuff.bongo.messages.BongoFindResponse;
 
@@ -48,7 +48,7 @@ public class DecodingCallable<TModel> implements Callable<Void> {
         }
         log.debug("decoding a new entry");
         buffer.setHead(5);
-        BsonReader reader = new BsonReaderStack(buffer);
+        BsonReader reader = new StackBsonReader(buffer);
         var result = findResponseConverter.read(reader);
 
         bufferPool.recycle(buffer);
@@ -57,7 +57,8 @@ public class DecodingCallable<TModel> implements Callable<Void> {
             responses.put(result);
           } catch (InterruptedException e) {
             log.debug(
-                "Decoder thread interrupted waiting for space to put decoded response on queue");
+                "Decoder thread interrupted waiting for space to put decoded "
+                    + "response on queue");
             break;
           }
         }

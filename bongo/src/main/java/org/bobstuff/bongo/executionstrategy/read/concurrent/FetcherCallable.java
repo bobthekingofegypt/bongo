@@ -3,9 +3,11 @@ package org.bobstuff.bongo.executionstrategy.read.concurrent;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import lombok.extern.slf4j.Slf4j;
-import org.bobstuff.bobbson.*;
+import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.buffer.DynamicBobBsonBuffer;
+import org.bobstuff.bobbson.reader.BsonReader;
+import org.bobstuff.bobbson.reader.StackBsonReader;
 import org.bobstuff.bongo.WireProtocol;
 import org.bobstuff.bongo.connection.BongoSocket;
 import org.bobstuff.bongo.converters.BongoFindResponseConverter;
@@ -73,7 +75,7 @@ public class FetcherCallable<TModel> implements Callable<Void> {
       log.debug("concurrent strategy reading new batch");
       getMoreResponse = wireProtocol.readRawServerResponse(socket);
 
-      BsonReader reader = new BsonReaderStack(getMoreResponse.payload());
+      BsonReader reader = new StackBsonReader(getMoreResponse.payload());
       result = findResponseConverterSkipBody.read(reader);
       try {
         decodeQueue.put(getMoreResponse.payload());

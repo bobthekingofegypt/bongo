@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bobbson.writer.StackBsonWriter;

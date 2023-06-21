@@ -1,7 +1,6 @@
 package org.bobstuff.bongo;
 
 import java.util.List;
-
 import org.bobstuff.bobbson.buffer.pool.BobBsonBufferPool;
 import org.bobstuff.bongo.codec.BongoCodec;
 import org.bobstuff.bongo.converters.BongoFindRequestConverter;

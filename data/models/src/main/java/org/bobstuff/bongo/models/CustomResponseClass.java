@@ -1,6 +1,5 @@
 package org.bobstuff.bongo.models;
 
-
 import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @GenerateBobBsonConverter

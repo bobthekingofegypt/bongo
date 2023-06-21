@@ -70,7 +70,7 @@ public class CompanyBulkWriteBenchmark {
                               .authSource("admin")
                               .password("speal")
                               .build())
-                      .host("192.168.1.138:27017")
+                      .host("192.168.1.139:27017")
                       .compressor(new BongoCompressorZstd())
                       .build())
               .bufferPool(new ConcurrentBobBsonBufferPool())
@@ -129,7 +129,7 @@ public class CompanyBulkWriteBenchmark {
                   new ConnectionString(
                       //
                       // "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/?compressors=zstd"))
-                      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin&compressors=zstd"))
+                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin&compressors=zstd"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -166,7 +166,7 @@ public class CompanyBulkWriteBenchmark {
                   new ConnectionString(
                       //
                       // "mongodb://192.168.1.138:27027,192.168.1.138:27028,192.168.1.138:27029/"))
-                      "mongodb://admin:speal@192.168.1.138:27017/?authSource=admin"))
+                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");

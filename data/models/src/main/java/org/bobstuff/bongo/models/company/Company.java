@@ -28,7 +28,7 @@ public class Company {
   private String description;
   private Address address;
 
-  @BsonConverter(target = InstantConverter.class)
+  @BsonConverter(InstantConverter.class)
   private Instant foundedDate;
 
   private Stats stats;

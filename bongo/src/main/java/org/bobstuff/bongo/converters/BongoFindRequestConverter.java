@@ -2,11 +2,14 @@ package org.bobstuff.bongo.converters;
 
 import java.nio.charset.StandardCharsets;
 import org.bobstuff.bobbson.BobBsonConverter;
+import org.bobstuff.bobbson.BsonType;
+import org.bobstuff.bobbson.reader.BsonReader;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bongo.messages.BongoFindRequest;
 import org.bson.BsonDocument;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 
 public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequest> {
@@ -14,6 +17,13 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
 
   public BongoFindRequestConverter(BobBsonConverter<BsonDocument> documentConverter) {
     this.documentConverter = documentConverter;
+  }
+
+  @Override
+  public @Nullable BongoFindRequest readValue(
+      @UnknownKeyFor @NonNull @Initialized BsonReader bsonReader,
+      @UnknownKeyFor @NonNull @Initialized BsonType type) {
+    throw new UnsupportedOperationException("method not implemented");
   }
 
   @Override
@@ -43,5 +53,11 @@ public class BongoFindRequestConverter implements BobBsonConverter<BongoFindRequ
     }
 
     bsonWriter.writeEndDocument();
+  }
+
+  @Override
+  public void writeValue(
+      @UnknownKeyFor @NonNull @Initialized BsonWriter bsonWriter, BongoFindRequest value) {
+    throw new UnsupportedOperationException("method not implemented");
   }
 }

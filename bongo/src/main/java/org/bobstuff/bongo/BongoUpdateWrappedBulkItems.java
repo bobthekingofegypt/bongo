@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import org.bobstuff.bobbson.BobBsonConverter;
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
-import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bobbson.writer.StackBsonWriter;
 import org.bobstuff.bongo.exception.BongoException;
 
@@ -40,7 +39,8 @@ public class BongoUpdateWrappedBulkItems<TModel> extends BongoWrappedBulkItems<T
       var start = buffer.getTail();
 
       writer.writeStartDocument();
-      converter.write(writer, item, false);
+      // TODO DELETE THIS?
+      converter.write(writer, item);
       writer.writeEndDocument();
 
       var end = buffer.getTail();

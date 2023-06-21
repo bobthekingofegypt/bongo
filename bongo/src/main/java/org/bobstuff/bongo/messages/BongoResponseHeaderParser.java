@@ -1,6 +1,5 @@
 package org.bobstuff.bongo.messages;
 
-
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 
 public class BongoResponseHeaderParser {

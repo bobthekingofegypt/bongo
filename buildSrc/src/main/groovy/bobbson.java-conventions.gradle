@@ -14,11 +14,18 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
+        url "https://jitpack.io"
+    }
+    maven {
         url "https://repo.karuslabs.com/repository/elementary-releases/"
     }
     maven {
         url "https://repo.karuslabs.com/repository/chimera-snapshots/"
     }
+}
+
+ext {
+    bobbsonVersion = "0.9.3-SNAPSHOT"
 }
 
 testing {

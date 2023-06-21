@@ -215,7 +215,8 @@ public class WriteExecutionConcurrentStrategy<TModel> implements WriteExecutionS
             while (splitter.hasMore()) {
               var type = splitter.nextType();
               var request =
-                  new BongoWriteRequest(type, identifier, writeConcern, options.isOrdered(), options.getComment());
+                  new BongoWriteRequest(
+                      type, identifier, writeConcern, options.isOrdered(), options.getComment());
 
               var indexMap = new BongoIndexMap();
 

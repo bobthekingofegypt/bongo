@@ -3,7 +3,6 @@ package org.bobstuff.bongo;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.bobstuff.bobbson.buffer.BobBsonBuffer;
 import org.bobstuff.bobbson.writer.BsonWriter;
 import org.bobstuff.bobbson.writer.StackBsonWriter;
