@@ -25,7 +25,7 @@ repositories {
 }
 
 ext {
-    bobbsonVersion = "0.9.3-SNAPSHOT"
+    bobbsonVersion = "0.9.6-SNAPSHOT"
 }
 
 testing {

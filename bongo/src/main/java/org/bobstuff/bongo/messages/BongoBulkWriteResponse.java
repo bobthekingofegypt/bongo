@@ -2,6 +2,7 @@ package org.bobstuff.bongo.messages;
 
 import java.util.List;
 import lombok.Data;
+import org.bobstuff.bobbson.annotations.BsonAttribute;
 import org.bobstuff.bobbson.annotations.GenerateBobBsonConverter;
 
 @Data
@@ -13,6 +14,7 @@ public class BongoBulkWriteResponse {
   private String errmsg;
   private int code;
   private List<BongoBulkWriteError> writeErrors;
-  private int nModified;
+  @BsonAttribute("nModified")
+  private int numModified;
   private List<BongoIndexedIdOperation> upserted;
 }

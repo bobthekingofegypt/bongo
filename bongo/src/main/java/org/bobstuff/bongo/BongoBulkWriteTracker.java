@@ -49,7 +49,7 @@ public class BongoBulkWriteTracker {
 
     if (operationType == BongoWriteOperationType.Update) {
       matchedCount += response.getN();
-      modifiedCount += response.getNModified();
+      modifiedCount += response.getNumModified();
       if (response.getUpserted() != null) {
         for (var upsert : response.getUpserted()) {
           upsert.setIndex(indexMap.get(upsert.getIndex()));

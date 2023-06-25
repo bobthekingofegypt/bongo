@@ -1,11 +1,14 @@
 package bongo;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import java.util.concurrent.TimeUnit;
 import org.bobstuff.bobbson.BobBson;
 import org.bobstuff.bobbson.buffer.pool.ConcurrentBobBsonBufferPool;
 import org.bobstuff.bobbson.converters.BsonValueConverters;
@@ -26,16 +29,13 @@ import org.bson.types.ObjectId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.concurrent.TimeUnit;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 @BenchmarkMode({Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Measurement(iterations = 20, time = 60000, timeUnit = MILLISECONDS)
 public class BasicFindBenchmarkLimit {
 
   private static int LIMIT = 10;
+
   @State(Scope.Benchmark)
   public static class MyBongoClient {
     public BongoClient bongoClient;
@@ -55,13 +55,14 @@ public class BasicFindBenchmarkLimit {
       var settings =
           BongoSettings.builder()
               .connectionSettings(
-                      BongoConnectionSettings.builder().credentials(
-                                                     BongoCredentials.builder()
-                                                                     .username("admin")
-                                                                     .authSource("admin")
-                                                                     .password("speal")
-                                                                     .build())
-                                             .host("192.168.1.139:27017")
+                  BongoConnectionSettings.builder()
+                      .credentials(
+                          BongoCredentials.builder()
+                              .username("admin")
+                              .authSource("admin")
+                              .password("speal")
+                              .build())
+                      .host("192.168.1.139:27017")
                       .compressor(new BongoCompressorZstd())
                       .build())
               .bufferPool(new ConcurrentBobBsonBufferPool())
@@ -114,7 +115,9 @@ public class BasicFindBenchmarkLimit {
                     builder.connectTimeout(1, TimeUnit.DAYS);
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
-              .applyConnectionString(new ConnectionString("mongodb://admin:speal@192.168.1.139:27017/?authSource=admin"))
+              .applyConnectionString(
+                  new ConnectionString(
+                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -153,7 +156,8 @@ public class BasicFindBenchmarkLimit {
                     builder.readTimeout(1, TimeUnit.DAYS);
                   })
               .applyConnectionString(
-                  new ConnectionString("mongodb://admin:speal@192.168.1.139:27017/?authSource=admin&compressors=zstd"))
+                  new ConnectionString(
+                      "mongodb://admin:speal@192.168.1.139:27017/?authSource=admin&compressors=zstd"))
               .build();
       client = MongoClients.create(settings);
       mongoDatabase = client.getDatabase("test_data");
@@ -174,7 +178,7 @@ public class BasicFindBenchmarkLimit {
             .find(new ReadExecutionSerialStrategy<Person>())
             .compress(false)
             .cursorType(BongoCursorType.Default)
-                .options(BongoFindOptions.builder().limit(LIMIT).build())
+            .options(BongoFindOptions.builder().limit(LIMIT).build())
             .iterator();
 
     int i = 0;

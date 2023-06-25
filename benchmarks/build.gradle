@@ -62,3 +62,5 @@ tasks.register('copyReport', Copy) {
 }
 
 tasks.jmh.finalizedBy tasks.jmhReport
+
+pmdJmh.enabled = false
